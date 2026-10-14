@@ -700,9 +700,10 @@ function calcSteps(steps,c,w){var cum=0;return steps.map(function(p){var v=num(p
   if(p.mode==='x'){if(v!=null&&c)add=v*c}else if(p.mode==='pct'){if(v!=null&&w)add=v/100*w}else if(p.mode==='g'){if(v!=null)add=v}else if(p.mode==='rest'){if(w)add=Math.max(0,w-cum)}
   if(add==null)return{t:p.t,add:null,up:null};cum+=add;return{t:p.t,add:add,up:cum}})}
 function schedWeights(){var wa=num(st.waterA),wt=num(st.waterT),ca=num(st.coffeeA),ct=num(st.coffeeT);return{c:ca!=null?ca:ct,w:wa!=null?wa:wt}}
+function schedOrder(){return schedules.map(function(x,i){return i}).sort(function(a,b){return schedules[a].name.localeCompare(schedules[b].name,undefined,{numeric:true,sensitivity:'base'})})}
 function schedByName(n){return schedules.filter(function(x){return x.name===n})[0]}
 function renderScheduleSel(){var sel=$('#f_schedule');if(!sel)return;
-  sel.innerHTML='<option value="">Custom (type my own)</option>'+schedules.map(function(x){return'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>'}).join('');
+  sel.innerHTML='<option value="">Custom (type my own)</option>'+schedOrder().map(function(i){var x=schedules[i];return'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>'}).join('');
   if(st.schedule&&!schedByName(st.schedule))st.schedule='';sel.value=st.schedule||''}
 function applySchedule(msg){var sc=schedByName(st.schedule);if(!sc)return;var W=schedWeights(),r=calcSteps(sc.steps,W.c,W.w);
   st.pours=r.map(function(x){return{t:x.t||'',up:x.up==null?'':String(r1(x.up))}});if(!st.pours.length)st.pours=[{t:'0:00',up:''}];
@@ -712,7 +713,7 @@ function schedSummary(sc){return sc.steps.map(function(p){var m=p.mode,v=p.v;ret
 function renderSchedules(){persist();var ul=$('#p_list');ul.innerHTML='';
   $('#p_count').textContent=schedules.length+(schedules.length===1?' schedule':' schedules');
   if(!schedules.length){ul.innerHTML='<li class="empty">No pour schedules yet. Create one, then pick it on the Log a brew tab.</li>';return}
-  schedules.forEach(function(sc,i){var W=schedWeights(),r=calcSteps(sc.steps,W.c||15,W.w||240),li=document.createElement('li');li.className='bi ci';
+  schedOrder().forEach(function(i){var sc=schedules[i],W=schedWeights(),r=calcSteps(sc.steps,W.c||15,W.w||240),li=document.createElement('li');li.className='bi ci';
     li.innerHTML='<div class="b1"><strong>'+esc(sc.name)+'</strong><span class="rate">'+sc.steps.length+' pours</span></div><div class="b2">'+esc(schedSummary(sc))+'</div>'+
       '<div class="b2">'+r.map(function(x){return x.up==null?'–':r1(x.up)}).join(' → ')+' g <span class="hint">(at '+r1(W.c||15)+' g coffee, '+r1(W.w||240)+' g water)</span></div>'+
       '<div class="acts"><button type="button" class="btn primary small" data-a="use">Use</button><button type="button" class="btn small ghost" data-a="edit">Edit</button><button type="button" class="btn small ghost" data-a="rm">Delete</button></div>';
