@@ -366,6 +366,7 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
           <h2>Recent brews</h2>
           <input type="text" id="histSearch" class="search" placeholder="Search coffee, method, notes" aria-label="Search recent brews">
           <ul class="hist" id="hist"></ul>
+          <button type="button" class="btn small ghost" id="rmExamples" hidden style="margin-top:8px">Remove example brews</button>
           <button type="button" class="btn small ghost" id="seeAll" style="margin-top:8px">See all brews</button>
         </div>
       </aside>
@@ -601,7 +602,7 @@ function update(){persist();$('#rateRange').classList.toggle('na',num(st.rating)
   $('#o_sum').textContent=bits.join(' · ');
 }
 
-function renderHist(){persist();var q=($('#histSearch').value||'').toLowerCase(),ul=$('#hist');ul.innerHTML='';
+function renderHist(){persist();$('#rmExamples').hidden=!history.some(function(h){return h.ex});var q=($('#histSearch').value||'').toLowerCase(),ul=$('#hist');ul.innerHTML='';
   var shown=history.filter(function(h){return(h.coffee+' '+h.method+' '+h.notes).toLowerCase().indexOf(q)>-1}).slice(0,5);
   if(!shown.length){ul.innerHTML='<li class="empty" style="border:0;background:none">'+(history.length?'No brews match.':'No brews yet. Your first one will show up here.')+'</li>';return}
   shown.forEach(function(h){var li=document.createElement('li');
@@ -753,6 +754,11 @@ $('#p_save').addEventListener('click',function(){var n=$('#p_name').value.trim()
   if(sedit==null)schedules.push(sf);else{schedules[sedit]=sf;if(old!==n&&st.schedule===old)st.schedule=n}
   $('#p_form').hidden=true;renderScheduleSel();renderSchedules();toast('Saved '+n+'.')});
 
+$('#rmExamples').addEventListener('click',function(){var n=history.filter(function(h){return h.ex}).length;if(!n)return;
+  if(!confirm('Remove the '+n+' example '+(n===1?'brew':'brews')+'? Your own brews are not touched.'))return;
+  var before=history.slice();for(var i=history.length-1;i>=0;i--)if(history[i].ex)history.splice(i,1);
+  renderHist();if(!$('#panel-brews').hidden)renderBrewList();
+  toast('Removed '+n+' example '+(n===1?'brew':'brews')+'.',function(){history.length=0;before.forEach(function(h){history.push(h)});renderHist();if(!$('#panel-brews').hidden)renderBrewList()})});
 function startFrom(h){if(editId!=null)endEdit();var b=blank();
   ['coffee','method','waterName','waterLevel','waterT','coffeeT','grinder','grind','temp','filter'].forEach(function(k){if(h[k]!=null&&h[k]!=='')b[k]=h[k]});
   b.tech=(h.tech||[]).slice();
