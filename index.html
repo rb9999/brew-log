@@ -241,7 +241,7 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
         <div id="editBar" hidden style="display:none;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border:1px solid var(--viz,#888);border-radius:10px"><strong id="editLbl">Editing brew</strong><button type="button" class="btn small" id="editCancel">Cancel edit</button></div>
 
         <fieldset class="sec">
-          <legend>Coffee</legend>
+          <legend>Coffee and water</legend>
           <div class="field">
             <label for="f_coffee">Coffee</label>
             <select id="f_coffee"></select>
@@ -254,7 +254,10 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
           <div class="field">
             <span class="lbl" id="lbl_water">Water</span>
             <div class="chips" id="waters" role="group" aria-labelledby="lbl_water"></div>
-            <div class="field" style="max-width:220px;margin-top:2px"><label for="f_waterLevel" class="hint">Water level rating (optional)</label><input type="text" inputmode="decimal" class="num" id="f_waterLevel" placeholder="42"></div>
+            <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-top:6px">
+              <div class="field" style="width:150px"><label for="f_temp" class="hint">Water temp</label><div class="unit" data-u="°F"><input type="text" inputmode="numeric" class="num" id="f_temp" aria-label="Water temperature in Fahrenheit" placeholder="195"></div></div>
+              <div class="field" style="width:96px"><label for="f_waterLevel" class="hint">Level (optional)</label><input type="text" inputmode="decimal" class="num" id="f_waterLevel" placeholder="42" maxlength="3" aria-label="Water level rating, optional"></div>
+            </div>
           </div>
         </fieldset>
 
@@ -262,16 +265,14 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
           <legend>Recipe</legend>
           <div class="row">
             <div class="field">
-              <span class="lbl">Total water</span>
-              <div class="pair stack">
-                <div class="sub"><div class="unit" data-u="g"><input type="text" inputmode="decimal" class="num" id="f_waterT" aria-label="Total water, target in grams"></div><small>plan</small></div>
-                <div class="sub"><div class="unit" data-u="g"><input type="text" inputmode="decimal" class="num" id="f_waterA" aria-label="Total water, actual in grams" placeholder="actual"></div><small>actual (optional)</small></div>
-              </div>
+              <label for="f_waterT" class="lbl">Total water</label>
+              <div class="unit" data-u="g"><input type="text" inputmode="decimal" class="num" id="f_waterT" aria-label="Total water, plan in grams"></div>
+              <small class="hint">plan</small>
             </div>
             <div class="field">
               <span class="lbl">Coffee weight</span>
               <div class="pair stack">
-                <div class="sub"><div class="unit" data-u="g"><input type="text" inputmode="decimal" class="num" id="f_coffeeT" aria-label="Coffee weight, target in grams"></div><small>plan</small></div>
+                <div class="sub"><div class="unit" data-u="g"><input type="text" inputmode="decimal" class="num" id="f_coffeeT" aria-label="Coffee weight, plan in grams"></div><small>plan</small></div>
                 <div class="sub"><div class="unit" data-u="g"><input type="text" inputmode="decimal" class="num" id="f_coffeeA" aria-label="Coffee weight, actual in grams" placeholder="actual"></div><small>actual (optional)</small></div>
               </div>
             </div>
@@ -293,10 +294,6 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
                 <div class="acts"><button type="button" class="btn primary small" id="ag_add">Add grinder</button><button type="button" class="btn ghost small" id="ag_cancel">Cancel</button></div>
               </div>
             </div>
-            <div class="field">
-              <span class="lbl">Water temp</span>
-              <div class="unit" data-u="°F"><input type="text" inputmode="numeric" class="num" id="f_temp" aria-label="Water temperature in Fahrenheit" placeholder="195"></div>
-            </div>
           </div>
         </fieldset>
 
@@ -316,7 +313,11 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
         <fieldset class="sec">
           <legend>Result</legend>
           <div class="row">
-            <div class="field"><label for="f_yield">Yield</label><div class="unit" data-u="g"><input type="text" inputmode="decimal" class="num" id="f_yield"></div><span class="hint" id="o_retained"></span></div>
+            <div class="field"><label for="f_waterA">Water poured (actual)</label><div class="unit" data-u="g"><input type="text" inputmode="decimal" class="num" id="f_waterA" placeholder="optional"></div></div>
+            <div class="field"><label for="f_yield">Yield</label><div class="unit" data-u="g"><input type="text" inputmode="decimal" class="num" id="f_yield"></div></div>
+          </div>
+          <span class="hint" id="o_retained"></span>
+          <div class="row">
             <div class="field"><label for="f_dd">Drawdown</label><input type="text" inputmode="numeric" class="num" id="f_dd" placeholder="2:50"><span class="hint" id="o_ddHint">Total time until the bed has drained and only droplets are left. 250 becomes 2:50.</span></div>
           </div>
           <div class="field">
