@@ -228,6 +228,7 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
       <button role="tab" id="tab-log" aria-selected="true" data-tab="log">Log a brew</button>
       <button role="tab" id="tab-brews" aria-selected="false" data-tab="brews">Brews</button>
       <button role="tab" id="tab-coffees" aria-selected="false" data-tab="coffees">Coffees</button>
+      <button role="tab" id="tab-pours" aria-selected="false" data-tab="pours">Pours</button>
       <button role="tab" id="tab-trends" aria-selected="false" data-tab="trends">Trends</button>
       <button role="tab" id="tab-ideas" aria-selected="false" data-tab="ideas">Ideas</button>
     </nav>
@@ -300,6 +301,7 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
 
         <fieldset class="sec">
           <legend>Pours</legend>
+          <div class="field"><label for="f_schedule">Pour schedule</label><select id="f_schedule"></select></div>
           <div class="pour-head" aria-hidden="true"><span></span><span>Starts at</span><span>Up to</span><span style="text-align:right">Added</span><span></span></div>
           <div class="pours" id="pours"></div>
           <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
@@ -405,6 +407,23 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
       <ul class="blist" id="c_list" style="margin-top:8px"></ul>
     </div>
   </section>
+  <section id="panel-pours" hidden>
+    <div class="brews">
+      <div class="bbar"><span class="b-count" id="p_count"></span><button type="button" class="btn primary small" id="p_add">+ New schedule</button></div>
+      <div class="addbox" id="p_form" hidden>
+        <div class="field"><label for="p_name" class="hint">Schedule name</label><input type="text" id="p_name" placeholder="3x / 5x / rest" autocomplete="off"></div>
+        <div id="p_steps" style="display:flex;flex-direction:column;gap:8px"></div>
+        <div><button type="button" class="btn small" id="p_addStep">+ Add pour</button></div>
+        <div class="row">
+          <div class="field"><label for="p_pc" class="hint">Preview: coffee (g)</label><input type="text" inputmode="decimal" id="p_pc"></div>
+          <div class="field"><label for="p_pw" class="hint">Preview: water (g)</label><input type="text" inputmode="decimal" id="p_pw"></div>
+        </div>
+        <span class="hint">Each pour is the amount added in that pour. "x coffee" multiplies the coffee weight, "% of water" uses the total water, "rest of water" fills up to the total. Pours are shown as running totals, like the card.</span>
+        <div class="acts"><button type="button" class="btn primary small" id="p_save">Save schedule</button><button type="button" class="btn ghost small" id="p_cancel">Cancel</button></div>
+      </div>
+      <ul class="blist" id="p_list" style="margin-top:8px"></ul>
+    </div>
+  </section>
   <section id="panel-trends" hidden>
     <div class="trends">
       <div class="tfilters"><div class="row">
@@ -474,8 +493,9 @@ var TASTE=['Balanced','Sweet','Fruity','Roasty','Bitter','Sour','Weak','Muted','
 var TECH=['Melodrip','Swirl','Vigorous pour','Gentle pour'];
 
 function blank(){return{coffee:'',waterName:'',waterLevel:'',method:'',waterT:'240',waterA:'',coffeeT:'',coffeeA:'',grinder:'GT',grind:'',temp:'',
-  pours:[{t:'0:00',up:''}],yield:'',dd:'',rating:'',notes:'',taste:[],roastDate:'',filter:'',tds:'',tech:[]}}
+  pours:[{t:'0:00',up:''}],schedule:'',yield:'',dd:'',rating:'',notes:'',taste:[],roastDate:'',filter:'',tds:'',tech:[]}}
 var st=blank();
+var schedules=[],sedit=null;
 
 function rec(o){var b=blank();for(var k in o)b[k]=o[k];b.ex=true;return b}
 var history=[];
@@ -496,7 +516,7 @@ function renderGrinders(){persist();var s=$('#f_grinder');
   if(!grinders.some(function(g){return g.code===st.grinder}))st.grinder=grinders[0].code;s.value=st.grinder}
 
 function syncInputs(){keys.forEach(function(k){var el=$('#f_'+k);if(el)el.value=st[k]||''});
-  $('#rateRange').value=num(st.rating)||5;renderCoffees();renderGrinders();renderChips();renderPours();update()}
+  $('#rateRange').value=num(st.rating)||5;renderCoffees();renderGrinders();renderChips();renderPours();renderScheduleSel();update()}
 
 function chipGroup(id,items,isOn,onClick,labelFn){var box=$(id);box.innerHTML='';
   items.forEach(function(it){var b=document.createElement('button');b.type='button';b.className='chip';b.textContent=labelFn?labelFn(it):it;
@@ -518,13 +538,13 @@ function renderPours(){var box=$('#pours');box.innerHTML='';
     '<span class="delta" id="pd'+i+'"></span>'+
     '<button type="button" class="icon" data-rm="'+i+'" aria-label="Remove pour '+(i+1)+'"'+(st.pours.length<2?' disabled':'')+'>×</button>';
     box.appendChild(r)})}
-$('#pours').addEventListener('input',function(e){var d=e.target.dataset;if(d.f){st.pours[+d.i][d.f]=e.target.value;update()}});
+$('#pours').addEventListener('input',function(e){var d=e.target.dataset;if(d.f){st.pours[+d.i][d.f]=e.target.value;if(st.schedule){st.schedule='';renderScheduleSel()}update()}});
 $('#pours').addEventListener('change',function(e){var d=e.target.dataset;if(d.f==='t'){var t=parseT(e.target.value);if(t!=null){e.target.value=fmtT(t);st.pours[+d.i].t=e.target.value;update()}}});
-$('#pours').addEventListener('click',function(e){var b=e.target.closest('[data-rm]');if(b&&st.pours.length>1){st.pours.splice(+b.dataset.rm,1);renderPours();update()}});
-$('#addPour').addEventListener('click',function(){st.pours.push({t:'',up:''});renderPours();update();var el=$('#pt'+(st.pours.length-1));if(el)el.focus()});
+$('#pours').addEventListener('click',function(e){var b=e.target.closest('[data-rm]');if(b&&st.pours.length>1){st.pours.splice(+b.dataset.rm,1);st.schedule='';renderScheduleSel();renderPours();update()}});
+$('#addPour').addEventListener('click',function(){st.schedule='';renderScheduleSel();st.pours.push({t:'',up:''});renderPours();update();var el=$('#pt'+(st.pours.length-1));if(el)el.focus()});
 
 keys.forEach(function(k){var el=$('#f_'+k);if(!el)return;
-  el.addEventListener('input',function(){st[k]=el.value;if(k==='rating'){var n=num(el.value);if(n!=null)$('#rateRange').value=Math.min(10,Math.max(1,n))}update()});
+  el.addEventListener('input',function(){st[k]=el.value;if(st.schedule&&/^(coffee|water)[TA]$/.test(k))applySchedule(false);if(k==='rating'){var n=num(el.value);if(n!=null)$('#rateRange').value=Math.min(10,Math.max(1,n))}update()});
   if(k==='dd'){el.addEventListener('change',function(){var t=parseT(el.value);if(t!=null){el.value=fmtT(t);st.dd=el.value;update()}})}
   if(k==='rating'){el.addEventListener('change',function(){var n=num(el.value);if(n!=null){n=Math.min(10,Math.max(1,n));el.value=n.toFixed(1);st.rating=el.value;update()}})}});
 $('#rateRange').addEventListener('input',function(e){st.rating=Number(e.target.value).toFixed(1);$('#f_rating').value=st.rating;update()});
@@ -646,7 +666,7 @@ $('#form').addEventListener('submit',function(e){e.preventDefault();
     if(ix>-1){var u=JSON.parse(JSON.stringify(st));u.id=editId;u.date=history[ix].date;u.level=(coffeeRec(u.coffee)||{}).level||'';if(history[ix].ex)u.ex=true;history[ix]=u}
     endEdit();syncInputs();renderHist();renderBrews();showTab('brews');toast('Brew updated.');return}
   var saved=JSON.parse(JSON.stringify(st));saved.id=nid++;saved.level=(coffeeRec(saved.coffee)||{}).level||'';saved.date=new Date().toISOString().slice(0,10);history.unshift(saved);
-  var s=st;st=blank();['coffee','waterName','waterLevel','method','waterT','coffeeT','grinder','grind','temp','filter','roastDate','tech','pourNote'].forEach(function(k){st[k]=Array.isArray(s[k])?s[k].slice():s[k]});
+  var s=st;st=blank();['coffee','waterName','waterLevel','method','waterT','coffeeT','grinder','grind','temp','filter','roastDate','tech','pourNote','schedule'].forEach(function(k){st[k]=Array.isArray(s[k])?s[k].slice():s[k]});
   st.pours=s.pours.map(function(p){return{t:p.t,up:p.up}});
   syncInputs();renderHist();toast('Saved. Form kept as the start of your next brew.')});
 $('#clearBtn').addEventListener('click',function(){st=blank();syncInputs();toast('Form cleared.')});
@@ -657,13 +677,72 @@ function startEdit(h){if(editId==null)editDraft=st;var b=blank();for(var k in h)
   delete b.ex;st=b;editId=h.id;setEditUI(true,h);syncInputs();showTab('log');window.scrollTo({top:0,behavior:'smooth'})}
 function endEdit(){editId=null;st=editDraft||blank();editDraft=null;setEditUI(false)}
 $('#editCancel').addEventListener('click',function(){endEdit();syncInputs();showTab('brews');toast('Edit cancelled.')});
+
+/* pour schedules */
+var SMODES=[['x','x coffee'],['pct','% of water'],['g','grams'],['rest','rest of water']];
+function calcSteps(steps,c,w){var cum=0;return steps.map(function(p){var v=num(p.v),add=null;
+  if(p.mode==='x'){if(v!=null&&c)add=v*c}else if(p.mode==='pct'){if(v!=null&&w)add=v/100*w}else if(p.mode==='g'){if(v!=null)add=v}else if(p.mode==='rest'){if(w)add=Math.max(0,w-cum)}
+  if(add==null)return{t:p.t,add:null,up:null};cum+=add;return{t:p.t,add:add,up:cum}})}
+function schedWeights(){var wa=num(st.waterA),wt=num(st.waterT),ca=num(st.coffeeA),ct=num(st.coffeeT);return{c:ca!=null?ca:ct,w:wa!=null?wa:wt}}
+function schedByName(n){return schedules.filter(function(x){return x.name===n})[0]}
+function renderScheduleSel(){var sel=$('#f_schedule');if(!sel)return;
+  sel.innerHTML='<option value="">Custom (type my own)</option>'+schedules.map(function(x){return'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>'}).join('');
+  if(st.schedule&&!schedByName(st.schedule))st.schedule='';sel.value=st.schedule||''}
+function applySchedule(msg){var sc=schedByName(st.schedule);if(!sc)return;var W=schedWeights(),r=calcSteps(sc.steps,W.c,W.w);
+  st.pours=r.map(function(x){return{t:x.t||'',up:x.up==null?'':String(r1(x.up))}});if(!st.pours.length)st.pours=[{t:'0:00',up:''}];
+  renderPours();update();if(msg){toast(W.c&&W.w?'Applied '+sc.name+'.':'Applied '+sc.name+'. Enter coffee and water weights to fill in the amounts.')}}
+$('#f_schedule').addEventListener('change',function(e){st.schedule=e.target.value;if(st.schedule)applySchedule(true);else update()});
+function schedSummary(sc){return sc.steps.map(function(p){var m=p.mode,v=p.v;return m==='x'?v+'x':m==='pct'?v+'%':m==='g'?v+' g':'rest'}).join(' · ')}
+function renderSchedules(){persist();var ul=$('#p_list');ul.innerHTML='';
+  $('#p_count').textContent=schedules.length+(schedules.length===1?' schedule':' schedules');
+  if(!schedules.length){ul.innerHTML='<li class="empty">No pour schedules yet. Create one, then pick it on the Log a brew tab.</li>';return}
+  schedules.forEach(function(sc,i){var W=schedWeights(),r=calcSteps(sc.steps,W.c||15,W.w||240),li=document.createElement('li');li.className='bi ci';
+    li.innerHTML='<div class="b1"><strong>'+esc(sc.name)+'</strong><span class="rate">'+sc.steps.length+' pours</span></div><div class="b2">'+esc(schedSummary(sc))+'</div>'+
+      '<div class="b2">'+r.map(function(x){return x.up==null?'–':r1(x.up)}).join(' → ')+' g <span class="hint">(at '+r1(W.c||15)+' g coffee, '+r1(W.w||240)+' g water)</span></div>'+
+      '<div class="acts"><button type="button" class="btn primary small" data-a="use">Use</button><button type="button" class="btn small ghost" data-a="edit">Edit</button><button type="button" class="btn small ghost" data-a="rm">Delete</button></div>';
+    li.querySelector('[data-a=use]').addEventListener('click',function(){st.schedule=sc.name;syncInputs();applySchedule(true);showTab('log');window.scrollTo({top:0})});
+    li.querySelector('[data-a=edit]').addEventListener('click',function(){openSchedForm(i)});
+    li.querySelector('[data-a=rm]').addEventListener('click',function(){schedules.splice(i,1);renderScheduleSel();renderSchedules();
+      toast('Deleted '+sc.name+'. Past brews are kept.',function(){schedules.splice(i,0,sc);renderScheduleSel();renderSchedules()})});
+    ul.appendChild(li)})}
+var sf=null;
+function openSchedForm(i){sedit=i;sf=i==null?{name:'',steps:[{t:'0:00',mode:'x',v:'3'},{t:'0:45',mode:'x',v:'5'},{t:'',mode:'rest',v:''}]}:JSON.parse(JSON.stringify(schedules[i]));
+  var W=schedWeights();$('#p_name').value=sf.name;$('#p_pc').value=String(W.c||15);$('#p_pw').value=String(W.w||240);
+  $('#p_form').hidden=false;renderSteps();$('#p_name').focus()}
+function renderSteps(){var box=$('#p_steps');box.innerHTML='';var c=num($('#p_pc').value),w=num($('#p_pw').value),r=calcSteps(sf.steps,c,w);
+  sf.steps.forEach(function(p,i){var row=document.createElement('div');row.style.cssText='display:flex;flex-wrap:wrap;gap:8px;align-items:center';
+    row.innerHTML='<span class="hint" style="width:100%">Pour '+(i+1)+(i===0?' (bloom)':'')+'</span>'+
+      '<input type="text" inputmode="numeric" data-i="'+i+'" data-f="t" value="'+esc(p.t)+'" placeholder="time" aria-label="Pour '+(i+1)+' start time" style="width:72px;font-family:var(--font-num)">'+
+      (p.mode==='rest'?'':'<input type="text" inputmode="decimal" data-i="'+i+'" data-f="v" value="'+esc(p.v)+'" aria-label="Pour '+(i+1)+' amount" style="width:72px;font-family:var(--font-num)">')+
+      '<select data-i="'+i+'" data-f="mode" aria-label="Pour '+(i+1)+' unit" style="width:auto;flex:1 1 120px">'+SMODES.map(function(m){return'<option value="'+m[0]+'"'+(p.mode===m[0]?' selected':'')+'>'+m[1]+'</option>'}).join('')+'</select>'+
+      '<span class="hint" id="pv'+i+'" style="font-family:var(--font-num)"></span>'+
+      '<button type="button" class="icon" data-rm="'+i+'" aria-label="Remove pour '+(i+1)+'"'+(sf.steps.length<2?' disabled':'')+'>×</button>';
+    box.appendChild(row)});updPrev()}
+function updPrev(){var c=num($('#p_pc').value),w=num($('#p_pw').value),r=calcSteps(sf.steps,c,w);
+  r.forEach(function(x,i){var e=$('#pv'+i);if(e)e.textContent=x.up==null?'':'+'+r1(x.add)+' g = '+r1(x.up)+' g'})}
+$('#p_steps').addEventListener('input',function(e){var d=e.target.dataset;if(d.f==='t'||d.f==='v'){sf.steps[+d.i][d.f]=e.target.value;updPrev()}});
+$('#p_steps').addEventListener('change',function(e){var d=e.target.dataset;
+  if(d.f==='mode'){sf.steps[+d.i].mode=e.target.value;if(e.target.value==='rest')sf.steps[+d.i].v='';renderSteps()}
+  if(d.f==='t'){var t=parseT(e.target.value);if(t!=null){e.target.value=fmtT(t);sf.steps[+d.i].t=e.target.value}}});
+$('#p_steps').addEventListener('click',function(e){var b=e.target.closest('[data-rm]');if(b&&sf.steps.length>1){sf.steps.splice(+b.dataset.rm,1);renderSteps()}});
+$('#p_addStep').addEventListener('click',function(){sf.steps.push({t:'',mode:'x',v:''});renderSteps()});
+$('#p_pc').addEventListener('input',updPrev);$('#p_pw').addEventListener('input',updPrev);
+$('#p_add').addEventListener('click',function(){openSchedForm(null)});
+$('#p_cancel').addEventListener('click',function(){$('#p_form').hidden=true});
+$('#p_form').addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();e.target.blur()}});
+$('#p_save').addEventListener('click',function(){var n=$('#p_name').value.trim();if(!n){$('#p_name').focus();toast('Give the schedule a name.');return}
+  if(schedules.some(function(x,i){return x.name===n&&i!==sedit})){toast('A schedule with that name already exists.');return}
+  var old=sedit!=null?schedules[sedit].name:null;sf.name=n;
+  if(sedit==null)schedules.push(sf);else{schedules[sedit]=sf;if(old!==n&&st.schedule===old)st.schedule=n}
+  $('#p_form').hidden=true;renderScheduleSel();renderSchedules();toast('Saved '+n+'.')});
+
 function startFrom(h){if(editId!=null)endEdit();var b=blank();
   ['coffee','method','waterName','waterLevel','waterT','coffeeT','grinder','grind','temp','filter','pourNote'].forEach(function(k){if(h[k]!=null&&h[k]!=='')b[k]=h[k]});
   b.tech=(h.tech||[]).slice();
   b.pours=(h.pours&&h.pours.length)?h.pours.map(function(p){return{t:p.t,up:p.up}}):[{t:'0:00',up:''}];
   if(!coffeeRec(h.coffee))coffees.push({name:h.coffee,roaster:'',roast:''});
   st=b;syncInputs();showTab('log');toast('Started from '+h.coffee+'. Results are blank.');window.scrollTo({top:0,behavior:'smooth'})}
-function showTab(n){Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'),function(x){x.setAttribute('aria-selected',x.dataset.tab===n?'true':'false');$('#panel-'+x.dataset.tab).hidden=(x.dataset.tab!==n)});if(n==='brews')renderBrews();if(n==='coffees')renderCoffeeCards();if(n==='trends')renderTrends();if(n==='ideas')renderIdeas()}
+function showTab(n){Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'),function(x){x.setAttribute('aria-selected',x.dataset.tab===n?'true':'false');$('#panel-'+x.dataset.tab).hidden=(x.dataset.tab!==n)});if(n==='brews')renderBrews();if(n==='coffees')renderCoffeeCards();if(n==='pours')renderSchedules();if(n==='trends')renderTrends();if(n==='ideas')renderIdeas()}
 Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'),function(b){b.addEventListener('click',function(){showTab(b.dataset.tab)})});
 $('#seeAll').addEventListener('click',function(){showTab('brews');window.scrollTo({top:0})});
 
@@ -878,19 +957,19 @@ $('#b_clear').addEventListener('click',function(){bf.q='';bf.coffee='';bf.method
 
 /* Saving: everything lives in this browser's localStorage */
 var LOADED=false,SKEY='brewlog.v1';
-function persist(){if(!LOADED)return;try{localStorage.setItem(SKEY,JSON.stringify({v:1,coffees:coffees,grinders:grinders,history:history,nid:nid,draft:(editId!=null&&editDraft?editDraft:st)}))}catch(e){$('#storeWarn').hidden=false}}
+function persist(){if(!LOADED)return;try{localStorage.setItem(SKEY,JSON.stringify({v:1,coffees:coffees,grinders:grinders,schedules:schedules,history:history,nid:nid,draft:(editId!=null&&editDraft?editDraft:st)}))}catch(e){$('#storeWarn').hidden=false}}
 (function(){try{var raw=localStorage.getItem(SKEY);if(raw){var d=JSON.parse(raw);
   if(Array.isArray(d.coffees))coffees=d.coffees;if(Array.isArray(d.grinders)&&d.grinders.length)grinders=d.grinders;
-  if(Array.isArray(d.history))history=d.history;if(d.nid)nid=d.nid;
+  if(Array.isArray(d.history))history=d.history;if(Array.isArray(d.schedules))schedules=d.schedules;if(d.nid)nid=d.nid;
   if(d.draft&&typeof d.draft==='object'){var b=blank();for(var k in d.draft)b[k]=d.draft[k];if(!Array.isArray(b.pours)||!b.pours.length)b.pours=[{t:'0:00',up:''}];st=b}}}catch(e){}
   LOADED=true})();
 function download(name,text){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500)}
-$('#exportBtn').addEventListener('click',function(){download('brew-log-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({v:1,coffees:coffees,grinders:grinders,history:history,nid:nid},null,1));toast('Backup downloaded.')});
+$('#exportBtn').addEventListener('click',function(){download('brew-log-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({v:1,coffees:coffees,grinders:grinders,schedules:schedules,history:history,nid:nid},null,1));toast('Backup downloaded.')});
 $('#importBtn').addEventListener('click',function(){$('#importFile').click()});
 $('#importFile').addEventListener('change',function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();
   r.onload=function(){try{var d=JSON.parse(r.result);if(!Array.isArray(d.coffees)||!Array.isArray(d.history))throw 0;
     if(!confirm('Replace everything in this browser with the backup ('+d.history.length+' brews, '+d.coffees.length+' coffees)?'))return;
-    localStorage.setItem(SKEY,JSON.stringify({v:1,coffees:d.coffees,grinders:d.grinders||grinders,history:d.history,nid:d.nid||100}));location.reload()}
+    localStorage.setItem(SKEY,JSON.stringify({v:1,coffees:d.coffees,grinders:d.grinders||grinders,schedules:d.schedules||[],history:d.history,nid:d.nid||100}));location.reload()}
     catch(x){toast('That file is not a Brew Log backup.')}};r.readAsText(f);e.target.value=''});
 $('#clearBtn2').addEventListener('click',function(){if(confirm('Delete every brew and coffee saved in this browser? Export a backup first if you want to keep them.')){localStorage.removeItem(SKEY);location.reload()}});
 syncInputs();renderHist();
