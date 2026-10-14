@@ -461,7 +461,7 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
   </section>
 </div>
 <footer class="app data" id="dataBar">
-  <span class="hint">Saved in this browser only.</span>
+  <span class="hint" id="syncMsg">Saved in this browser only.</span>
   <button type="button" class="btn small ghost" id="exportBtn">Export backup</button>
   <button type="button" class="btn small ghost" id="importBtn">Import backup</button>
   <button type="button" class="btn small ghost" id="clearBtn2">Delete all data</button>
@@ -968,21 +968,56 @@ $('#b_clear').addEventListener('click',function(){bf.q='';bf.coffee='';bf.method
 
 /* Saving: everything lives in this browser's localStorage */
 var LOADED=false,SKEY='brewlog.v1';
-function persist(){if(!LOADED)return;try{localStorage.setItem(SKEY,JSON.stringify({v:1,coffees:coffees,grinders:grinders,schedules:schedules,history:history,nid:nid,draft:(editId!=null&&editDraft?editDraft:st)}))}catch(e){$('#storeWarn').hidden=false}}
+function persist(){if(!LOADED)return;try{localStorage.setItem(SKEY,JSON.stringify({v:1,coffees:coffees,grinders:grinders,schedules:schedules,history:history,nid:nid,draft:(editId!=null&&editDraft?editDraft:st)}))}catch(e){$('#storeWarn').hidden=false}
+  if(SYNC)queuePush()}
 (function(){try{var raw=localStorage.getItem(SKEY);if(raw){var d=JSON.parse(raw);
   if(Array.isArray(d.coffees))coffees=d.coffees;if(Array.isArray(d.grinders)&&d.grinders.length)grinders=d.grinders;
   if(Array.isArray(d.history))history=d.history;if(Array.isArray(d.schedules))schedules=d.schedules;if(d.nid)nid=d.nid;
   if(d.draft&&typeof d.draft==='object'){var b=blank();for(var k in d.draft)b[k]=d.draft[k];if(!Array.isArray(b.pours)||!b.pours.length)b.pours=[{t:'0:00',up:''}];st=b}}}catch(e){}
   LOADED=true})();
+
+/* Optional sync to the NAS server (server.js). Without it, this page just uses browser storage. */
+var SYNC=false,srev=0,lastSent='',pt=null,REVKEY='brewlog.rev';
+function dataOnly(){return{v:1,coffees:coffees,grinders:grinders,schedules:schedules,history:history,nid:nid}}
+function setSyncUI(t,bad){var e=$('#syncMsg');if(e){e.textContent=t;e.style.color=bad?'var(--bad)':''}}
+function hasData(d){return!!d&&((d.history||[]).length||(d.coffees||[]).length||(d.schedules||[]).length)}
+function queuePush(){if(JSON.stringify(dataOnly())===lastSent)return;clearTimeout(pt);pt=setTimeout(push,700)}
+function adopt(j,msg){try{var o={};try{o=JSON.parse(localStorage.getItem(SKEY))||{}}catch(e){}
+  o.v=1;o.coffees=j.data.coffees;o.grinders=j.data.grinders||grinders;o.schedules=j.data.schedules||[];o.history=j.data.history;o.nid=j.data.nid||100;
+  localStorage.setItem(SKEY,JSON.stringify(o));localStorage.setItem(REVKEY,String(j.rev));if(msg)sessionStorage.setItem('brewlog.msg',msg)}catch(e){}
+  location.reload()}
+function putData(d,base){return fetch('api/data',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({baseRev:base,data:d})}).then(function(r){return r.json().then(function(j){return{s:r.status,j:j}})})}
+function push(){pt=null;var d=dataOnly(),js=JSON.stringify(d);if(js===lastSent)return;
+  putData(d,srev).then(function(x){
+    if(x.s===200){srev=x.j.rev;lastSent=js;try{localStorage.setItem(REVKEY,String(srev))}catch(e){}setSyncUI('Synced to your NAS.')}
+    else if(x.s===409&&hasData(x.j.data))adopt(x.j,'Your data was changed on another device, so this page reloaded the latest. Please redo your last change.');
+    else throw 0})
+  .catch(function(){setSyncUI('Cannot reach the NAS. Changes are kept in this browser and will sync when it is back.',true);clearTimeout(pt);pt=setTimeout(push,10000)})}
+function checkServer(first){fetch('api/data',{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){
+  if(!j||typeof j.rev!=='number')throw 0;SYNC=true;
+  if(hasData(j.data)){
+    var lr=+localStorage.getItem(REVKEY)||0;
+    if(j.rev!==srev&&(first?j.rev!==lr:true)){
+      if(first&&lr===0&&(history.length||coffees.length||schedules.length)){try{localStorage.setItem(SKEY+'.premerge',localStorage.getItem(SKEY))}catch(e){}}
+      if(!first&&(pt||JSON.stringify(dataOnly())!==lastSent))return;
+      adopt(j);return}
+    srev=j.rev;lastSent=JSON.stringify(j.data);setSyncUI('Synced to your NAS.');queuePush()}
+  else{srev=j.rev;lastSent='';setSyncUI('Synced to your NAS.');if(history.length||coffees.length||schedules.length)push()}
+}).catch(function(){if(first)setSyncUI('Saved in this browser only.')})}
+checkServer(true);
+document.addEventListener('visibilitychange',function(){if(!document.hidden&&SYNC)checkServer(false)});
+try{var m=sessionStorage.getItem('brewlog.msg');if(m){sessionStorage.removeItem('brewlog.msg');setTimeout(function(){toast(m)},300)}}catch(e){}
 function download(name,text){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500)}
 $('#exportBtn').addEventListener('click',function(){download('brew-log-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({v:1,coffees:coffees,grinders:grinders,schedules:schedules,history:history,nid:nid},null,1));toast('Backup downloaded.')});
 $('#importBtn').addEventListener('click',function(){$('#importFile').click()});
 $('#importFile').addEventListener('change',function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();
   r.onload=function(){try{var d=JSON.parse(r.result);if(!Array.isArray(d.coffees)||!Array.isArray(d.history))throw 0;
     if(!confirm('Replace everything in this browser with the backup ('+d.history.length+' brews, '+d.coffees.length+' coffees)?'))return;
-    localStorage.setItem(SKEY,JSON.stringify({v:1,coffees:d.coffees,grinders:d.grinders||grinders,schedules:d.schedules||[],history:d.history,nid:d.nid||100}));location.reload()}
+    var nd={v:1,coffees:d.coffees,grinders:d.grinders||grinders,schedules:d.schedules||[],history:d.history,nid:d.nid||100};
+    var done=function(){localStorage.setItem(SKEY,JSON.stringify(nd));location.reload()};
+    if(SYNC)putData(nd,srev).then(function(x){if(x.s===200){localStorage.setItem(REVKEY,String(x.j.rev));done()}else toast('The NAS rejected the import. Reload and try again.')}).catch(function(){toast('Cannot reach the NAS.')});else done()}
     catch(x){toast('That file is not a Brew Log backup.')}};r.readAsText(f);e.target.value=''});
-$('#clearBtn2').addEventListener('click',function(){if(confirm('Delete every brew and coffee saved in this browser? Export a backup first if you want to keep them.')){localStorage.removeItem(SKEY);location.reload()}});
+$('#clearBtn2').addEventListener('click',function(){if(confirm('Delete every brew and coffee? If this is synced to your NAS, that copy is cleared too. Export a backup first if you want to keep them.')){var wipe=function(){localStorage.removeItem(SKEY);localStorage.removeItem(REVKEY);location.reload()};if(SYNC)putData({v:1,coffees:[],grinders:grinders,schedules:[],history:[],nid:100},srev).then(wipe).catch(function(){toast('Cannot reach the NAS.')});else wipe()}});
 syncInputs();renderHist();
 })();
 </script>
