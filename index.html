@@ -405,6 +405,7 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
         <div class="acts"><button type="button" class="btn primary small" id="ac_add">Add to list</button><button type="button" class="btn ghost small" id="ac_cancel">Cancel</button></div>
       </div>
       <ul class="blist" id="c_list" style="margin-top:8px"></ul>
+      <details id="c_archWrap" hidden style="margin-top:14px"><summary id="c_archSum" style="cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--muted)">Archived</summary><ul class="blist" id="c_arch"></ul></details>
     </div>
   </section>
   <section id="panel-pours" hidden>
@@ -509,7 +510,7 @@ var editing=false;
 function coffeeRec(n){for(var i=0;i<coffees.length;i++)if(coffees[i].name===n)return coffees[i];return null}
 
 function renderCoffees(){var s=$('#f_coffee');
-  s.innerHTML='<option value="">'+(coffees.length?'Choose a coffee…':'No coffees yet. Add one on the Coffees tab.')+'</option>'+coffees.map(function(c){return'<option value="'+esc(c.name)+'">'+esc(c.name)+'</option>'}).join('');
+  s.innerHTML='<option value="">'+(coffees.some(function(c){return!c.archived})?'Choose a coffee…':'No coffees yet. Add one on the Coffees tab.')+'</option>'+coffees.filter(function(c){return!c.archived||c.name===st.coffee}).map(function(c){return'<option value="'+esc(c.name)+'">'+esc(c.name)+(c.archived?' (archived)':'')+'</option>'}).join('');
   s.value=coffeeRec(st.coffee)?st.coffee:''}
 function renderGrinders(){persist();var s=$('#f_grinder');
   s.innerHTML=grinders.map(function(g){return'<option value="'+esc(g.code)+'">'+esc(g.code)+'</option>'}).join('')+'<option value="__add">+ Add grinder</option>';
@@ -624,31 +625,39 @@ $('#ac_cancel').addEventListener('click',closeCoffeeForm);
 $('#addCoffee').addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();$('#ac_add').click()}});
 $('#ac_add').addEventListener('click',function(){var n=$('#ac_name').value.trim();if(!n){$('#ac_name').focus();return}
   var data={name:n,roaster:$('#ac_roaster').value.trim(),roast:$('#ac_roast').value,level:$('#ac_level').value,flavor:$('#ac_flavor').value.trim()};
-  if(editIdx>=0){var old=coffees[editIdx].name;coffees[editIdx]=data;if(st.coffee===old)st.coffee=n;
+  if(editIdx>=0){var oc=coffees[editIdx],old=oc.name;data.archived=oc.archived;data.bags=oc.bags;coffees[editIdx]=data;if(st.coffee===old)st.coffee=n;
     history.forEach(function(h){if(h.coffee===old||h.coffee===n){h.coffee=n;h.level=data.level}});toast('Saved '+n)}
-  else{var ex=coffeeRec(n);if(ex){for(var k in data)ex[k]=data[k]}else coffees.push(data);toast('Added '+n)}
+  else{var ex=coffeeRec(n);if(ex){var wasA=ex.archived;for(var k in data)ex[k]=data[k];if(wasA){ex.archived=false;ex.bags=(ex.bags||1)+1;toast('Added '+n+' back as bag '+ex.bags)}else toast('Saved '+n)}else{data.bags=1;coffees.push(data);toast('Added '+n)}}
   closeCoffeeForm();renderCoffees();renderCoffeeCards();renderHist();update()});
-function removeCoffee(i){var c=coffees[i],was=st.coffee===c.name;coffees.splice(i,1);if(was)st.coffee='';renderCoffees();renderCoffeeCards();update();
-  toast('Removed '+c.name+'. Past brews are kept.',function(){coffees.splice(i,0,c);if(was)st.coffee=c.name;renderCoffees();renderCoffeeCards();update()})}
+function removeCoffee(i){var c=coffees[i],was=st.coffee===c.name;c.archived=true;if(was)st.coffee='';renderCoffees();renderCoffeeCards();update();
+  toast('Removed '+c.name+' from the list. It is kept under Archived.',function(){c.archived=false;if(was)st.coffee=c.name;renderCoffees();renderCoffeeCards();update()})}
+function deleteCoffee(i){var c=coffees[i];if(!confirm('Delete '+c.name+' from your coffees? Your past brews stay in the Brews tab. This cannot be undone.'))return;
+  if(st.coffee===c.name)st.coffee='';coffees.splice(i,1);renderCoffees();renderCoffeeCards();update();toast('Deleted '+c.name+'.')}
+function restoreCoffee(i){var c=coffees[i];c.archived=false;c.bags=(c.bags||1)+1;c.roast='';renderCoffees();renderCoffeeCards();openCoffeeForm(i);toast('Added back as bag '+c.bags+'. Set the new roast date.')}
 function statCell(l,v){return'<span class="st"><span class="sl">'+l+'</span><span class="sv">'+esc(v||'–')+'</span></span>'}
-function renderCoffeeCards(){persist();var ul=$('#c_list');ul.innerHTML='';
-  $('#c_count').textContent=coffees.length+(coffees.length===1?' coffee':' coffees')+' on your list';
-  if(!coffees.length){ul.innerHTML='<li class="empty">No coffees yet. Add the bag you are brewing and it will appear in the Log a brew list.</li>';return}
+function renderCoffeeCards(){persist();var ul=$('#c_list'),ua=$('#c_arch');ul.innerHTML='';ua.innerHTML='';
+  var na=coffees.filter(function(c){return c.archived}).length,nact=coffees.length-na;
+  $('#c_count').textContent=nact+(nact===1?' coffee':' coffees')+' on your list';
+  $('#c_archWrap').hidden=!na;$('#c_archSum').textContent='Archived ('+na+')';
+  if(!nact){ul.innerHTML='<li class="empty">No coffees on your list. Add the bag you are brewing and it will appear in the Log a brew list.</li>'}
   coffees.forEach(function(c,i){
-    var bs=history.filter(function(h){return h.coffee===c.name}),rs=bs.map(function(h){return num(h.rating)}).filter(function(x){return x!=null});
+    var arch=!!c.archived,bs=history.filter(function(h){return h.coffee===c.name}),rs=bs.map(function(h){return num(h.rating)}).filter(function(x){return x!=null});
     var best=rs.length?Math.max.apply(null,rs).toFixed(1):'',dates=bs.map(function(h){return h.date||''}).sort(),last=dates.length?dateLabel(dates[dates.length-1]):'';
-    var meta=[c.roaster,daysOff(c)].filter(Boolean).map(esc).join(' · ');
+    var meta=[c.roaster,(c.bags>1?'Bag '+c.bags:''),arch?'':daysOff(c)].filter(Boolean).map(esc).join(' · ');
     var li=document.createElement('li');li.className='bi ci';
     li.innerHTML='<div class="b1"><strong>'+esc(c.name)+'</strong>'+(c.level?'<span class="rate">'+esc(c.level)+'</span>':'')+'</div>'+
       (c.flavor?'<div class="cf">'+esc(c.flavor)+'</div>':'')+(meta?'<div class="b2">'+meta+'</div>':'')+
       '<div class="bstats s3">'+statCell('Brews',String(bs.length))+statCell('Best',best)+statCell('Last brewed',last)+'</div>'+
-      '<div class="acts"><button type="button" class="btn primary small" data-a="brew">Brew this</button><button type="button" class="btn small" data-a="view">View brews</button><button type="button" class="btn small ghost" data-a="edit">Edit</button><button type="button" class="btn small ghost" data-a="rm">Remove</button></div>';
-    li.querySelector('[data-a=brew]').addEventListener('click',function(){
+      '<div class="acts">'+(arch?'<button type="button" class="btn primary small" data-a="back">Add back (new bag)</button>':'<button type="button" class="btn primary small" data-a="brew">Brew this</button>')+'<button type="button" class="btn small" data-a="view">View brews</button><button type="button" class="btn small ghost" data-a="edit">Edit</button>'+(arch?'':'<button type="button" class="btn small ghost" data-a="rm">Remove</button>')+'<button type="button" class="btn small ghost" data-a="del">Delete</button></div>';
+    var q=function(a){return li.querySelector('[data-a='+a+']')};
+    if(q('brew'))q('brew').addEventListener('click',function(){
       if(bs.length)startFrom(bs[0]);else{if(editId!=null)endEdit();st=blank();st.coffee=c.name;syncInputs();showTab('log');toast('New brew for '+c.name+'.');window.scrollTo({top:0})}});
-    li.querySelector('[data-a=view]').addEventListener('click',function(){bf.q='';bf.coffee=c.name;bf.method='';bf.min=0;bf.tags=[];showTab('brews');window.scrollTo({top:0})});
-    li.querySelector('[data-a=edit]').addEventListener('click',function(){openCoffeeForm(i)});
-    li.querySelector('[data-a=rm]').addEventListener('click',function(){removeCoffee(i)});
-    ul.appendChild(li)})}
+    if(q('back'))q('back').addEventListener('click',function(){restoreCoffee(i)});
+    q('view').addEventListener('click',function(){bf.q='';bf.coffee=c.name;bf.method='';bf.min=0;bf.tags=[];showTab('brews');window.scrollTo({top:0})});
+    q('edit').addEventListener('click',function(){openCoffeeForm(i)});
+    if(q('rm'))q('rm').addEventListener('click',function(){removeCoffee(i)});
+    q('del').addEventListener('click',function(){deleteCoffee(i)});
+    (arch?ua:ul).appendChild(li)})}
 /* grinder list */
 $('#f_grinder').addEventListener('change',function(e){if(e.target.value==='__add'){e.target.value=st.grinder;$('#addGrinder').hidden=false;$('#ag_code').focus()}else{st.grinder=e.target.value;update()}});
 $('#ag_cancel').addEventListener('click',function(){$('#addGrinder').hidden=true});
@@ -665,7 +674,7 @@ $('#form').addEventListener('submit',function(e){e.preventDefault();
   if(editId!=null){var ix=-1;history.forEach(function(h,i){if(h.id===editId)ix=i});
     if(ix>-1){var u=JSON.parse(JSON.stringify(st));u.id=editId;u.date=history[ix].date;u.level=(coffeeRec(u.coffee)||{}).level||'';if(history[ix].ex)u.ex=true;history[ix]=u}
     endEdit();syncInputs();renderHist();renderBrews();showTab('brews');toast('Brew updated.');return}
-  var saved=JSON.parse(JSON.stringify(st));saved.id=nid++;saved.level=(coffeeRec(saved.coffee)||{}).level||'';saved.date=new Date().toISOString().slice(0,10);history.unshift(saved);
+  var saved=JSON.parse(JSON.stringify(st));saved.id=nid++;saved.bag=(coffeeRec(saved.coffee)||{}).bags||1;saved.level=(coffeeRec(saved.coffee)||{}).level||'';saved.date=new Date().toISOString().slice(0,10);history.unshift(saved);
   var s=st;st=blank();['coffee','waterName','waterLevel','method','waterT','coffeeT','grinder','grind','temp','filter','roastDate','tech','schedule'].forEach(function(k){st[k]=Array.isArray(s[k])?s[k].slice():s[k]});
   st.pours=s.pours.map(function(p){return{t:p.t,up:p.up}});
   syncInputs();renderHist();toast('Saved. Form kept as the start of your next brew.')});
@@ -883,7 +892,7 @@ function startIdea(o){
   syncInputs();toast('Loaded the idea for '+o.coffee+'. Results are blank.');window.scrollTo({top:0,behavior:'smooth'})}
 function renderIdeas(){
   var ul=$('#i_list');ul.innerHTML='';
-  var items=coffees.map(ideaFor).filter(function(o){return!skipped[o.coffee]}).sort(function(a,b){
+  var items=coffees.filter(function(c){return!c.archived}).map(ideaFor).filter(function(o){return!skipped[o.coffee]}).sort(function(a,b){
     var da=a.last?a.last.date||'':'',db=b.last?b.last.date||'':'';return da<db?1:da>db?-1:0});
   if(!coffees.length)ul.innerHTML='<li class="empty">Add a coffee on the Coffees tab and its ideas will appear here.</li>';
   else if(!items.length)ul.innerHTML='<li class="empty">All ideas skipped for now.</li>';
@@ -933,7 +942,7 @@ function renderBrewList(){var list=brewsFiltered(),n=activeCount();
   var ul=$('#b_list');ul.innerHTML='';
   if(!list.length){ul.innerHTML='<li class="empty">'+(history.length?'No brews match. Try fewer filters.':'No brews yet. Log your first one on the Log a brew tab.')+'</li>';return}
   list.forEach(function(h){var open=!!bopen[h.id],r=num(h.rating),li=document.createElement('li');li.className='bi';
-    var tags=(h.taste||[]).concat(h.tech||[]).map(function(t){return'<span class="tag">'+esc(t)+'</span>'});if(h.ex)tags.push('<span class="tag ex">example</span>');
+    var tags=(h.taste||[]).concat(h.tech||[]).map(function(t){return'<span class="tag">'+esc(t)+'</span>'});if(h.bag>1)tags.unshift('<span class="tag">Bag '+h.bag+'</span>');if(h.ex)tags.push('<span class="tag ex">example</span>');
     var meta='<span>'+esc(dateLabel(h.date))+'</span><span class="bm">'+esc(h.method)+'</span>';
     function stat(l,v){return'<span class="st"><span class="sl">'+l+'</span><span class="sv">'+esc(v||'–')+'</span></span>'}
     li.innerHTML='<button type="button" class="bhead" aria-expanded="'+open+'"><span class="b1"><strong>'+esc(h.coffee)+'</strong><span class="rate">'+(r!=null?r.toFixed(1):'–')+'</span></span>'+
