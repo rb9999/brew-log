@@ -9,7 +9,7 @@ Live: https://rb9999.github.io/brew-log/
 
 ## Self-hosting on a NAS
 
-Put `index.html` and `server.js` in `/volume1/docker/brewlog` and run `docker-compose.yml`
+Put `index.html` and `server.js` in `/volume1/docker/brewlog`, create an empty `data` folder next to them, and run `docker-compose.yml`
 (Synology Container Manager > Project). Open `http://<nas>:8085`.
 
 All data is saved to one file, `data/brewlog.json`, with a daily copy in `data/backups/`

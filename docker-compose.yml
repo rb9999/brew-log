@@ -2,7 +2,7 @@
 # Folder layout on the NAS:
 #   /volume1/docker/brewlog/index.html   (the app)
 #   /volume1/docker/brewlog/server.js    (tiny server, no dependencies)
-#   /volume1/docker/brewlog/data/        (created automatically: brewlog.json + backups/)
+#   /volume1/docker/brewlog/data/        (CREATE THIS EMPTY FOLDER FIRST; the app puts brewlog.json + backups/ in it)
 # Open http://<nas-name-or-ip>:8085
 services:
   brewlog:
