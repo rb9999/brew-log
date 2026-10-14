@@ -1039,7 +1039,7 @@ $('#importFile').addEventListener('change',function(e){var f=e.target.files[0];i
     var done=function(){localStorage.setItem(SKEY,JSON.stringify(nd));location.reload()};
     if(SYNC)putData(nd,srev).then(function(x){if(x.s===200){localStorage.setItem(REVKEY,String(x.j.rev));done()}else toast('The NAS rejected the import. Reload and try again.')}).catch(function(){toast('Cannot reach the NAS.')});else done()}
     catch(x){toast('That file is not a Brew Log backup.')}};r.readAsText(f);e.target.value=''});
-$('#clearBtn2').addEventListener('click',function(){if(confirm('Delete every brew and coffee? If this is synced to your NAS, that copy is cleared too. Export a backup first if you want to keep them.')){var wipe=function(){localStorage.removeItem(SKEY);localStorage.removeItem(REVKEY);location.reload()};if(SYNC)putData({v:1,coffees:[],grinders:grinders,schedules:[],history:[],nid:100},srev).then(wipe).catch(function(){toast('Cannot reach the NAS.')});else wipe()}});
+$('#clearBtn2').addEventListener('click',function(){if(confirm('Are you sure? This deletes every brew, coffee and pour schedule. If this is synced to your NAS, that copy is cleared too. Export a backup first if you want to keep them.')&&confirm('Are you really sure? This cannot be undone.')){var wipe=function(){localStorage.removeItem(SKEY);localStorage.removeItem(REVKEY);location.reload()};if(SYNC)putData({v:1,coffees:[],grinders:grinders,schedules:[],history:[],nid:100},srev).then(wipe).catch(function(){toast('Cannot reach the NAS.')});else wipe()}});
 syncInputs();renderHist();
 })();
 </script>
