@@ -464,6 +464,7 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
   <span class="hint" id="syncMsg">Saved in this browser only.</span>
   <button type="button" class="btn small ghost" id="exportBtn">Export backup</button>
   <button type="button" class="btn small ghost" id="importBtn">Import backup</button>
+  <button type="button" class="btn small ghost" id="updateBtn" hidden>Update app</button>
   <button type="button" class="btn small ghost" id="clearBtn2">Delete all data</button>
   <input type="file" id="importFile" accept=".json,application/json" hidden>
   <span class="hint" id="storeWarn" hidden style="color:var(--bad)">This browser blocked storage, so nothing is being saved.</span>
@@ -994,7 +995,7 @@ function push(){pt=null;var d=dataOnly(),js=JSON.stringify(d);if(js===lastSent)r
     else throw 0})
   .catch(function(){setSyncUI('Cannot reach the NAS. Changes are kept in this browser and will sync when it is back.',true);clearTimeout(pt);pt=setTimeout(push,10000)})}
 function checkServer(first){fetch('api/data',{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){
-  if(!j||typeof j.rev!=='number')throw 0;SYNC=true;
+  if(!j||typeof j.rev!=='number')throw 0;SYNC=true;$('#updateBtn').hidden=false;
   if(hasData(j.data)){
     var lr=+localStorage.getItem(REVKEY)||0;
     if(j.rev!==srev&&(first?j.rev!==lr:true)){
@@ -1007,6 +1008,15 @@ function checkServer(first){fetch('api/data',{cache:'no-store'}).then(function(r
 checkServer(true);
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&SYNC)checkServer(false)});
 try{var m=sessionStorage.getItem('brewlog.msg');if(m){sessionStorage.removeItem('brewlog.msg');setTimeout(function(){toast(m)},300)}}catch(e){}
+
+function waitReload(){fetch('api/data',{cache:'no-store'}).then(function(){location.reload()}).catch(function(){setTimeout(waitReload,1000)})}
+$('#updateBtn').addEventListener('click',function(){var b=$('#updateBtn');b.disabled=true;b.textContent='Updating…';
+  fetch('api/update',{method:'POST'}).then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j}})}).then(function(x){
+    b.disabled=false;b.textContent='Update app';
+    if(!x.ok){toast(x.j.error||'Update failed.');return}
+    if(!x.j.updated.length){toast('Already up to date.');return}
+    toast('Updated '+x.j.updated.join(' and ')+'. Reloading…');setTimeout(waitReload,x.j.restart?2500:800)})
+  .catch(function(){b.disabled=false;b.textContent='Update app';toast('Could not reach the NAS server.')})});
 function download(name,text){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500)}
 $('#exportBtn').addEventListener('click',function(){download('brew-log-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({v:1,coffees:coffees,grinders:grinders,schedules:schedules,history:history,nid:nid},null,1));toast('Backup downloaded.')});
 $('#importBtn').addEventListener('click',function(){$('#importFile').click()});

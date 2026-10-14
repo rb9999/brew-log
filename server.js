@@ -29,6 +29,35 @@ function send(res, code, body, type) {
   res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));
 }
 
+const REPO = 'rb9999/brew-log', BRANCH = 'main';
+async function getFile(name) {
+  const base = process.env.UPDATE_BASE; // for testing only
+  if (base) { const r = await fetch(base + '/' + name); if (!r.ok) throw new Error(name + ': HTTP ' + r.status); return await r.text(); }
+  try {
+    const r = await fetch('https://api.github.com/repos/' + REPO + '/contents/' + name + '?ref=' + BRANCH,
+      { headers: { Accept: 'application/vnd.github.raw', 'User-Agent': 'brewlog' } });
+    if (r.ok) return await r.text();
+  } catch (e) {}
+  const r = await fetch('https://raw.githubusercontent.com/' + REPO + '/' + BRANCH + '/' + name + '?t=' + Date.now(), { headers: { 'User-Agent': 'brewlog' } });
+  if (!r.ok) throw new Error(name + ': HTTP ' + r.status);
+  return await r.text();
+}
+const CHECKS = { 'index.html': t => t.includes('</html>') && t.includes('Brew Log'), 'server.js': t => t.includes('http.createServer') };
+async function updateApp() {
+  const changed = [];
+  for (const name of Object.keys(CHECKS)) {
+    const text = await getFile(name);
+    if (!CHECKS[name](text)) throw new Error(name + ' downloaded but did not look right, so nothing was changed');
+    const dest = path.join(APP, name);
+    let old = ''; try { old = fs.readFileSync(dest, 'utf8'); } catch (e) {}
+    if (old === text) continue;
+    try { fs.writeFileSync(dest + '.tmp', text); fs.renameSync(dest + '.tmp', dest); }
+    catch (e) { throw new Error('The app folder is read-only. Remove ":ro" from the first volume line in the compose file and update the project. (' + e.code + ')'); }
+    changed.push(name);
+  }
+  return changed;
+}
+
 http.createServer((req, res) => {
   const url = req.url.split('?')[0];
   if (url === '/api/data' && req.method === 'GET') return send(res, 200, cur);
@@ -44,6 +73,14 @@ http.createServer((req, res) => {
       try { save(cur); } catch (e) { return send(res, 500, { error: 'write failed' }); }
       send(res, 200, { rev: cur.rev });
     });
+    return;
+  }
+  if (url === '/api/update' && req.method === 'POST') {
+    updateApp().then(changed => {
+      const restart = changed.includes('server.js');
+      send(res, 200, { updated: changed, restart });
+      if (restart) setTimeout(() => process.exit(0), 500); // Docker restarts the container
+    }).catch(e => send(res, 500, { error: String(e.message || e) }));
     return;
   }
   if (url === '/' || url === '/index.html') {

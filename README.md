@@ -16,4 +16,5 @@ All data is saved to one file, `data/brewlog.json`, with a daily copy in `data/b
 (last 30 kept). Every device that opens the page shares it. When the page is served
 without the server (for example GitHub Pages) it falls back to browser storage only.
 
-To update, replace `index.html` (restart the container only if `server.js` changed).
+To update, tap **Update app** in the page footer. The NAS downloads the latest `index.html` and
+`server.js` from this repo (the container restarts by itself if `server.js` changed).

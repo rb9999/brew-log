@@ -14,6 +14,6 @@ services:
     ports:
       - "8085:80"
     volumes:
-      - /volume1/docker/brewlog:/app:ro
+      - /volume1/docker/brewlog:/app
       - /volume1/docker/brewlog/data:/data
     restart: unless-stopped
