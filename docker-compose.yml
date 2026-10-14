@@ -1,0 +1,13 @@
+# Brew Log on a Synology NAS (or any Docker host).
+# 1. Put index.html in /volume1/docker/brewlog
+# 2. Container Manager > Project > Create, paste this file (or point at this folder)
+# 3. Open http://<nas-name-or-ip>:8085
+services:
+  brewlog:
+    image: nginx:alpine
+    container_name: brewlog
+    ports:
+      - "8085:80"
+    volumes:
+      - /volume1/docker/brewlog:/usr/share/nginx/html:ro
+    restart: unless-stopped
