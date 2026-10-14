@@ -443,6 +443,7 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
           <div class="tcard"><h3>Rating by water temp</h3><p class="tsub">One dot per brew.</p><div class="tchart" id="ch_temp"></div></div>
           <div class="tcard"><h3>Drawdown time by grind setting</h3><p class="tsub">Longer drawdown means more extraction.</p><div class="tchart" id="ch_dd"></div></div>
           <div class="tcard"><h3>Rating over time</h3><p class="tsub">Are your brews getting better?</p><div class="tchart" id="ch_time"></div></div>
+          <div class="tcard"><h3>Water retention over time</h3><p class="tsub">Grams of water the grounds keep per gram of coffee (water poured minus yield, divided by dose). Steady is good.</p><div class="tchart" id="ch_ret"></div></div>
         </div>
         <div class="tcard" style="margin-bottom:14px"><h3>How the cups tasted</h3><p class="tsub">Number of brews with each taste tag.</p><div id="t_tags" style="margin-top:8px"></div></div>
         <details class="tcard tbl"><summary>Table view of these brews</summary><div class="tscroll"><table id="t_table"></table></div></details>
@@ -573,7 +574,7 @@ function update(){persist();$('#rateRange').classList.toggle('na',num(st.rating)
   var w=wa!=null?wa:wt,c=ca!=null?ca:ct;
   $('#o_ratio').textContent=(w&&c)?'1 : '+r1(w/c):'–';
   $('#o_ratioNote').textContent=(w&&c)?'using '+(wa!=null||ca!=null?'actual':'target')+' weights':'';
-  var y=num(st.yield);$('#o_retained').textContent=(y!=null&&w)?r1(w-y)+' g stayed in the grounds':'';
+  var y=num(st.yield);var rt=retention(st);$('#o_retained').textContent=rt?r1(rt.rec)+'% recovered · '+r1(rt.pct)+'% retained ('+r1(rt.g)+' g'+(rt.perG!=null?', '+rt.perG.toFixed(1)+' g per g of coffee':'')+')':((y!=null&&w)?r1(w-y)+' g stayed in the grounds':'');
   // pours
   var prev=0,last=null;
   st.pours.forEach(function(p,i){var u=num(p.up),d=$('#pd'+i);if(!d)return;if(u!=null){d.textContent='+'+r1(u-prev);prev=u;last=u}else d.textContent=''});
@@ -817,22 +818,26 @@ function renderTrends(){
   var bs=cb.filter(function(h){return!tf.method||h.method===tf.method}).sort(function(a,b){return(a.date||'')<(b.date||'')?-1:1});
   var rated=bs.filter(function(h){return num(h.rating)!=null}),avg=rated.length?rated.reduce(function(a,h){return a+num(h.rating)},0)/rated.length:null;
   var best=null;rated.forEach(function(h){if(!best||num(h.rating)>num(best.rating))best=h});
+  var rets=bs.map(retention).filter(function(x){return x&&x.perG!=null}),avgRet=rets.length?rets.reduce(function(a,x){return a+x.perG},0)/rets.length:null;
   function T(l,v,sub){return'<div class="tile"><div class="tl">'+l+'</div><div class="tv">'+esc(v)+'</div>'+(sub?'<div class="ts">'+esc(sub)+'</div>':'')+'</div>'}
   $('#t_tiles').innerHTML=T('Brews',String(bs.length),'')+T('Average rating',avg!=null?avg.toFixed(1):'–','')+
+    T('Avg retention',avgRet!=null?avgRet.toFixed(1)+' g/g':'–',avgRet!=null?'water kept per g of coffee':'')+
     T('Best brew',best?num(best.rating).toFixed(1):'–',best?[best.grinder+' '+best.grind,best.temp+'°F',recRatio(best)?recRatio(best)+' ratio':'',best.dd?'DD '+best.dd:''].filter(Boolean).join(' · '):'');
   var few=$('#t_few'),fm=bs.length<4?(bs.length?'Only '+bs.length+(bs.length===1?' brew':' brews')+' match. Patterns get clearer after four or five.':'No brews match these filters.'):(!tf.coffee?'Showing every coffee together. Grind and temp patterns are clearer for one coffee.':'');few.hidden=!fm;few.textContent=fm;
   function lines(h){return(tf.coffee?[]:[h.coffee]).concat([dateLabel(h.date)+' · '+h.method,[h.grind?h.grinder+' '+h.grind:'',h.temp?h.temp+'°F':''].filter(Boolean).join(' · '),h.dd?'Drawdown '+h.dd:'']).filter(Boolean)}
-  var gr=[],tp=[],dd=[],tm=[];
+  var gr=[],tp=[],dd=[],tm=[],rtn=[];
   bs.forEach(function(h){var r=num(h.rating),g=num(h.grind),t=num(h.temp),d=parseT(h.dd),dt=h.date?new Date(h.date+'T12:00:00').getTime():null;
     if(r!=null&&g!=null)gr.push({x:g,y:r,big:r.toFixed(1),lines:lines(h)});
     if(r!=null&&t!=null)tp.push({x:t,y:r,big:r.toFixed(1),lines:lines(h)});
     if(g!=null&&d!=null)dd.push({x:g,y:d,big:fmtMS(d),lines:lines(h)});
+    var rr0=retention(h);if(rr0&&rr0.perG!=null&&dt!=null)rtn.push({x:dt,y:rr0.perG,big:rr0.perG.toFixed(1)+' g/g',lines:lines(h).concat([r1(rr0.pct)+'% retained · '+r1(rr0.g)+' g'])});
     if(r!=null&&dt!=null)tm.push({x:dt,y:r,big:r.toFixed(1),lines:lines(h)})});
   var yR={min:1,max:10.5,ticks:[2,4,6,8,10]},rf=function(t){return t.toFixed(1)},gf=function(t){return t%1?t.toFixed(1):String(t)};
   drawChart($('#ch_grind'),{title:'Rating by grind setting',pts:gr,xd:gr.length?niceDomain(gr.map(function(p){return p.x}),[0.1,0.2,0.5,1,2],1.5):null,yd:yR,lfmt:rf,xfmt:gf,yfmt:function(t){return t%1?t.toFixed(1):String(t)},xTitle:'Grind setting',yTitle:'Rating',labels:bestIdx(gr),none:'No brews with a grind setting and a rating yet.'});
   drawChart($('#ch_temp'),{title:'Rating by water temp',pts:tp,xd:tp.length?niceDomain(tp.map(function(p){return p.x}),[1,2,5,10],8):null,yd:yR,lfmt:rf,xfmt:function(t){return t+'°'},yfmt:function(t){return t%1?t.toFixed(1):String(t)},xTitle:'Water temp (°F)',yTitle:'Rating',labels:bestIdx(tp),none:'No brews with a water temp and a rating yet.'});
   drawChart($('#ch_dd'),{title:'Drawdown time by grind setting',pts:dd,xd:dd.length?niceDomain(dd.map(function(p){return p.x}),[0.1,0.2,0.5,1,2],1.5):null,yd:dd.length?niceDomain(dd.map(function(p){return p.y}),[10,15,30,60,120],60):null,xfmt:gf,yfmt:fmtMS,xTitle:'Grind setting',yTitle:'Drawdown',labels:[],none:'No brews with a grind setting and a drawdown time yet.'});
   drawChart($('#ch_time'),{title:'Rating over time',pts:tm,line:true,xd:tm.length?dateDomain(tm.map(function(p){return p.x})):null,yd:yR,lfmt:rf,xfmt:fmtDay,yfmt:function(t){return t%1?t.toFixed(1):String(t)},xTitle:'Brew date',yTitle:'Rating',labels:tm.length?[tm.indexOf(tm.slice().sort(function(a,b){return b.x-a.x})[0])]:[],none:'No rated brews with a date yet.'});
+  drawChart($('#ch_ret'),{title:'Water retention over time',pts:rtn,line:true,xd:rtn.length?dateDomain(rtn.map(function(p){return p.x})):null,yd:rtn.length?niceDomain(rtn.map(function(p){return p.y}),[0.1,0.2,0.5,1],1):null,lfmt:function(t){return t.toFixed(1)},xfmt:fmtDay,yfmt:function(t){return t.toFixed(1)},xTitle:'Brew date',yTitle:'g water kept per g coffee',labels:[],none:'No brews with a yield yet. Enter the yield (grams in the cup) to see retention.'});
   var rb=history.filter(function(h){return(!tf.coffee||h.coffee===tf.coffee)&&(!tf.method||h.method===tf.method)}),rr=$('#t_roasts');rr.innerHTML='';
   [['Light','Light'],['Medium','Medium'],['Dark','Dark'],['','Not set']].forEach(function(L){
     var g=rb.filter(function(h){return(h.level||'')===L[0]});if(!g.length)return;
@@ -844,8 +849,8 @@ function renderTrends(){
   var tk=Object.keys(tc).sort(function(a,b){return tc[b]-tc[a]||(a<b?-1:1)}),mx=tk.length?tc[tk[0]]:1,tg=$('#t_tags');tg.innerHTML='';
   if(!tk.length){tg.innerHTML='<p class="tnone" style="padding-block:6px">No taste tags yet.</p>'}
   tk.forEach(function(t){var r=document.createElement('div');r.className='tg-row';r.innerHTML='<span>'+esc(t)+'</span><span><span class="tg-fill" style="display:block;width:'+Math.max(6,Math.round(tc[t]/mx*100))+'%"></span></span><span class="tg-n">'+tc[t]+'</span>';tg.appendChild(r)});
-  $('#t_table').innerHTML='<thead><tr><th>Date</th><th>Method</th><th>Grind</th><th>Temp</th><th>Ratio</th><th>Drawdown</th><th>Rating</th></tr></thead><tbody>'+
-    bs.slice().reverse().map(function(h){return'<tr><td>'+esc(dateLabel(h.date))+'</td><td>'+esc(h.method)+'</td><td>'+esc(h.grind?h.grinder+' '+h.grind:'–')+'</td><td>'+esc(h.temp?h.temp+'°F':'–')+'</td><td>'+esc(recRatio(h)||'–')+'</td><td>'+esc(h.dd||'–')+'</td><td>'+esc(num(h.rating)!=null?num(h.rating).toFixed(1):'–')+'</td></tr>'}).join('')+'</tbody>'}
+  $('#t_table').innerHTML='<thead><tr><th>Date</th><th>Method</th><th>Grind</th><th>Temp</th><th>Ratio</th><th>Drawdown</th><th>Retention</th><th>Rating</th></tr></thead><tbody>'+
+    bs.slice().reverse().map(function(h){return'<tr><td>'+esc(dateLabel(h.date))+'</td><td>'+esc(h.method)+'</td><td>'+esc(h.grind?h.grinder+' '+h.grind:'–')+'</td><td>'+esc(h.temp?h.temp+'°F':'–')+'</td><td>'+esc(recRatio(h)||'–')+'</td><td>'+esc(h.dd||'–')+'</td><td>'+esc((function(){var q=retention(h);return q?r1(q.pct)+'%'+(q.perG!=null?' ('+q.perG.toFixed(1)+' g/g)':''):'–'})())+'</td><td>'+esc(num(h.rating)!=null?num(h.rating).toFixed(1):'–')+'</td></tr>'}).join('')+'</tbody>'}
 $('#t_coffee').addEventListener('change',function(e){tf.coffee=e.target.value;tf.method='';renderTrends()});
 $('#t_roast').addEventListener('change',function(e){tf.roast=e.target.value;renderTrends()});
 $('#t_method').addEventListener('change',function(e){tf.method=e.target.value;renderTrends()});
@@ -920,6 +925,8 @@ function renderIdeas(){
 var bf={q:'',coffee:'',method:'',min:0,sort:'new',tags:[]},bopen={};
 function uniq(a){var o={},r=[];a.forEach(function(x){if(x&&!o[x]){o[x]=1;r.push(x)}});return r}
 function dateLabel(iso){if(!iso)return'';var d=new Date(iso+'T12:00:00');return isNaN(d)?'':d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+function retention(h){var w=num(h.waterA)!=null?num(h.waterA):num(h.waterT),c=num(h.coffeeA)!=null?num(h.coffeeA):num(h.coffeeT),y=num(h.yield);
+  if(w==null||!w||y==null||y<=0||y>w)return null;var ret=w-y;var rec=r1(y/w*100);return{g:ret,pct:r1(100-rec),rec:rec,perG:c?ret/c:null}}
 function recRatio(h){var w=num(h.waterA)!=null?num(h.waterA):num(h.waterT),c=num(h.coffeeA)!=null?num(h.coffeeA):num(h.coffeeT);return(w&&c)?'1:'+r1(w/c):''}
 function cardFor(r){var keep=st;st=r;var h=cardHtml();st=keep;return h}
 function fillSel(id,vals,cur,first){var s=$(id);s.innerHTML='<option value="">'+first+'</option>'+vals.map(function(v){return'<option value="'+esc(v)+'">'+esc(v)+'</option>'}).join('');s.value=vals.indexOf(cur)>-1?cur:''}
