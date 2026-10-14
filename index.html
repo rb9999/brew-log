@@ -83,6 +83,7 @@ input:focus-visible,textarea:focus-visible,button:focus-visible,select:focus-vis
 .delta{font-family:var(--font-num);font-size:12.5px;color:var(--muted);text-align:right}
 .pour input{font-family:var(--font-num)}
 .pcm{display:block;text-align:right;font-size:17px;line-height:24px;color:var(--muted)}
+.na{opacity:.35}
 .btn{font:inherit;font-weight:500;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:0 16px;min-height:44px;cursor:pointer}
 .btn:hover{border-color:var(--accent)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
@@ -322,7 +323,7 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
             <label for="f_rating">Rating, 1.0 to 10.0</label>
             <div class="rating">
               <input type="range" id="rateRange" min="1" max="10" step="0.1" aria-label="Rating slider">
-              <input type="text" inputmode="decimal" class="num" id="f_rating" placeholder="6.8">
+              <input type="text" inputmode="decimal" class="num" id="f_rating" placeholder="N/A">
             </div>
           </div>
           <div class="field">
@@ -566,7 +567,7 @@ function cardHtml(){
   '<div class="c-notes">'+esc(st.notes)+(st.notes?'':'&nbsp;')+'</div>'+
   (st.taste.length?'<div class="c-tags">'+esc(st.taste.join(' · '))+'</div>':'')}
 
-function update(){persist();
+function update(){persist();$('#rateRange').classList.toggle('na',num(st.rating)==null);
   var wa=num(st.waterA),wt=num(st.waterT),ca=num(st.coffeeA),ct=num(st.coffeeT);
   var w=wa!=null?wa:wt,c=ca!=null?ca:ct;
   $('#o_ratio').textContent=(w&&c)?'1 : '+r1(w/c):'–';
@@ -671,6 +672,7 @@ if(window.matchMedia&&matchMedia('(max-width:979px)').matches){$('#cardDetails')
 
 $('#form').addEventListener('submit',function(e){e.preventDefault();
   if(!st.coffee.trim()){$('#f_coffee').scrollIntoView({block:'center'});toast('Pick a coffee first.');return}
+  if(num(st.rating)==null&&!confirm('No rating yet. Save this brew without a rating?\n\nOK saves it as N/A. Cancel lets you add a rating.')){$('#f_rating').focus();$('#f_rating').scrollIntoView({block:'center'});return}
   if(editId!=null){var ix=-1;history.forEach(function(h,i){if(h.id===editId)ix=i});
     if(ix>-1){var u=JSON.parse(JSON.stringify(st));u.id=editId;u.date=history[ix].date;u.level=(coffeeRec(u.coffee)||{}).level||'';if(history[ix].ex)u.ex=true;history[ix]=u}
     endEdit();syncInputs();renderHist();renderBrews();showTab('brews');toast('Brew updated.');return}
