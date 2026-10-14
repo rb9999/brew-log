@@ -666,7 +666,7 @@ $('#form').addEventListener('submit',function(e){e.preventDefault();
     if(ix>-1){var u=JSON.parse(JSON.stringify(st));u.id=editId;u.date=history[ix].date;u.level=(coffeeRec(u.coffee)||{}).level||'';if(history[ix].ex)u.ex=true;history[ix]=u}
     endEdit();syncInputs();renderHist();renderBrews();showTab('brews');toast('Brew updated.');return}
   var saved=JSON.parse(JSON.stringify(st));saved.id=nid++;saved.level=(coffeeRec(saved.coffee)||{}).level||'';saved.date=new Date().toISOString().slice(0,10);history.unshift(saved);
-  var s=st;st=blank();['coffee','waterName','waterLevel','method','waterT','coffeeT','grinder','grind','temp','filter','roastDate','tech','pourNote','schedule'].forEach(function(k){st[k]=Array.isArray(s[k])?s[k].slice():s[k]});
+  var s=st;st=blank();['coffee','waterName','waterLevel','method','waterT','coffeeT','grinder','grind','temp','filter','roastDate','tech','schedule'].forEach(function(k){st[k]=Array.isArray(s[k])?s[k].slice():s[k]});
   st.pours=s.pours.map(function(p){return{t:p.t,up:p.up}});
   syncInputs();renderHist();toast('Saved. Form kept as the start of your next brew.')});
 $('#clearBtn').addEventListener('click',function(){st=blank();syncInputs();toast('Form cleared.')});
@@ -737,7 +737,7 @@ $('#p_save').addEventListener('click',function(){var n=$('#p_name').value.trim()
   $('#p_form').hidden=true;renderScheduleSel();renderSchedules();toast('Saved '+n+'.')});
 
 function startFrom(h){if(editId!=null)endEdit();var b=blank();
-  ['coffee','method','waterName','waterLevel','waterT','coffeeT','grinder','grind','temp','filter','pourNote'].forEach(function(k){if(h[k]!=null&&h[k]!=='')b[k]=h[k]});
+  ['coffee','method','waterName','waterLevel','waterT','coffeeT','grinder','grind','temp','filter'].forEach(function(k){if(h[k]!=null&&h[k]!=='')b[k]=h[k]});
   b.tech=(h.tech||[]).slice();
   b.pours=(h.pours&&h.pours.length)?h.pours.map(function(p){return{t:p.t,up:p.up}}):[{t:'0:00',up:''}];
   if(!coffeeRec(h.coffee))coffees.push({name:h.coffee,roaster:'',roast:''});
