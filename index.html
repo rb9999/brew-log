@@ -516,7 +516,7 @@ var editing=false;
 function coffeeRec(n){for(var i=0;i<coffees.length;i++)if(coffees[i].name===n)return coffees[i];return null}
 
 function renderCoffees(){var s=$('#f_coffee');
-  s.innerHTML='<option value="">'+(coffees.some(function(c){return!c.archived})?'Choose a coffee…':'No coffees yet. Add one on the Coffees tab.')+'</option>'+coffees.filter(function(c){return!c.archived||c.name===st.coffee}).map(function(c){return'<option value="'+esc(c.name)+'">'+esc(c.name)+(c.archived?' (archived)':'')+'</option>'}).join('');
+  s.innerHTML='<option value="">'+(coffees.some(function(c){return!c.archived})?'Choose a coffee…':'No coffees yet. Add one on the Coffees tab.')+'</option>'+coffees.filter(function(c){return!c.archived||c.name===st.coffee}).sort(function(a,b){return a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'})}).map(function(c){return'<option value="'+esc(c.name)+'">'+esc(c.name)+(c.archived?' (archived)':'')+'</option>'}).join('');
   s.value=coffeeRec(st.coffee)?st.coffee:''}
 function renderGrinders(){persist();var s=$('#f_grinder');
   s.innerHTML=grinders.map(function(g){return'<option value="'+esc(g.code)+'">'+esc(g.code)+'</option>'}).join('')+'<option value="__add">+ Add grinder</option>';
