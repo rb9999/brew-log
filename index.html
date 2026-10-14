@@ -342,7 +342,14 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
         <fieldset class="sec">
           <legend>More detail<span class="new-tag">new, optional</span></legend>
           <div class="row">
-            <div class="field"><label for="f_filter">Filter</label><input type="text" id="f_filter" list="filters" placeholder="Cafec"><datalist id="filters"><option value="Cafec"></option><option value="Hario"></option><option value="Kalita"></option></datalist></div>
+            <div class="field">
+              <label for="f_filter">Filter</label>
+              <div style="display:flex;gap:8px;align-items:center"><select id="f_filter" style="flex:1" aria-label="Filter paper"></select><button type="button" class="btn small ghost" id="filterRm" hidden>Remove from list</button></div>
+              <div class="addbox" id="addFilter" hidden>
+                <div class="field"><label for="af_name" class="hint">New filter</label><input type="text" id="af_name" placeholder="Cafec T90" autocomplete="off"></div>
+                <div class="acts"><button type="button" class="btn primary small" id="af_add">Add filter</button><button type="button" class="btn ghost small" id="af_cancel">Cancel</button></div>
+              </div>
+            </div>
           </div>
           <div class="field">
             <span class="lbl" id="lbl_tech">Technique</span>
@@ -502,15 +509,17 @@ var OVER=['Bitter','Astringent','Harsh','Dry'],UNDER=['Sour','Muted','Grassy','F
 var TECH=['Melodrip','Swirl','Vigorous pour','Gentle pour'];
 
 function blank(){return{coffee:'',waterName:'',waterLevel:'',method:'',waterT:'240',waterA:'',coffeeT:'',coffeeA:'',grinder:'GT',grind:'',temp:'',
-  pours:[{t:'0:00',up:''}],schedule:'',yield:'',dd:'',rating:'',notes:'',taste:[],roastDate:'',filter:'',tds:'',tech:[]}}
+  pours:[{t:'0:00',up:''}],schedule:'',yield:'',dd:'',rating:'',notes:'',taste:[],roastDate:'',filter:lastFilter(),tds:'',tech:[]}}
+function lastFilter(){try{for(var i=0;i<history.length;i++){var f=history[i].filter;if(f&&filters.indexOf(f)>-1)return f}}catch(e){}return''}
 var st=blank();
 var schedules=[],sedit=null;
+var filters=['Kalita Wave','Cafec T90','Hario'];
 
 function rec(o){var b=blank();for(var k in o)b[k]=o[k];b.ex=true;return b}
 var history=[];
 history.forEach(function(h,i){h.id=i+1});var nid=100;
 
-var keys=['waterLevel','waterT','waterA','coffeeT','coffeeA','grind','temp','yield','dd','rating','notes','filter','tds','pourNote'];
+var keys=['waterLevel','waterT','waterA','coffeeT','coffeeA','grind','temp','yield','dd','rating','notes','tds','pourNote'];
 
 var coffees=[];
 var grinders=[{code:'GT',name:'Turin H40 V2'}];
@@ -525,8 +534,25 @@ function renderGrinders(){persist();var s=$('#f_grinder');
   s.innerHTML=grinders.map(function(g){return'<option value="'+esc(g.code)+'">'+esc(g.code)+'</option>'}).join('')+'<option value="__add">+ Add grinder</option>';
   if(!grinders.some(function(g){return g.code===st.grinder}))st.grinder=grinders[0].code;s.value=st.grinder}
 
-function syncInputs(){keys.forEach(function(k){var el=$('#f_'+k);if(el)el.value=st[k]||''});
+function syncInputs(){renderFilters();keys.forEach(function(k){var el=$('#f_'+k);if(el)el.value=st[k]||''});
   $('#rateRange').value=num(st.rating)||5;renderCoffees();renderGrinders();renderChips();renderPours();renderScheduleSel();update()}
+
+
+/* filter papers */
+function renderFilters(){var sel=$('#f_filter');if(!sel)return;
+  var list=filters.slice();if(st.filter&&list.indexOf(st.filter)<0)list.push(st.filter);
+  list.sort(function(a,b){return a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'})});
+  sel.innerHTML='<option value="">No filter chosen</option>'+list.map(function(f){return'<option value="'+esc(f)+'">'+esc(f)+'</option>'}).join('')+'<option value="__add">+ Add filter…</option>';
+  sel.value=st.filter||'';$('#filterRm').hidden=!(st.filter&&filters.indexOf(st.filter)>-1)}
+$('#f_filter').addEventListener('change',function(e){if(e.target.value==='__add'){e.target.value=st.filter||'';$('#addFilter').hidden=false;$('#af_name').focus();return}
+  st.filter=e.target.value;renderFilters();update()});
+$('#af_cancel').addEventListener('click',function(){$('#addFilter').hidden=true;$('#af_name').value=''});
+$('#af_add').addEventListener('click',function(){var n=$('#af_name').value.trim();if(!n){$('#af_name').focus();return}
+  var ex=filters.filter(function(f){return f.toLowerCase()===n.toLowerCase()})[0];if(ex)n=ex;else filters.push(n);
+  st.filter=n;$('#af_name').value='';$('#addFilter').hidden=true;renderFilters();update();toast(ex?'Selected '+n+'.':'Added '+n+' to your filters.')});
+$('#af_name').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();$('#af_add').click()}});
+$('#filterRm').addEventListener('click',function(){var n=st.filter,i=filters.indexOf(n);if(i<0)return;filters.splice(i,1);st.filter='';renderFilters();update();
+  toast('Removed '+n+' from your filters. Past brews keep it.',function(){if(filters.indexOf(n)<0)filters.splice(i,0,n);st.filter=n;renderFilters();update()})});
 
 function chipGroup(id,items,isOn,onClick,labelFn){var box=$(id);box.innerHTML='';
   items.forEach(function(it){var b=document.createElement('button');b.type='button';b.className='chip';b.textContent=labelFn?labelFn(it):it;
@@ -989,22 +1015,23 @@ $('#b_clear').addEventListener('click',function(){bf.q='';bf.coffee='';bf.method
 
 /* Saving: everything lives in this browser's localStorage */
 var LOADED=false,SKEY='brewlog.v1';
-function persist(){if(!LOADED)return;try{localStorage.setItem(SKEY,JSON.stringify({v:1,coffees:coffees,grinders:grinders,schedules:schedules,history:history,nid:nid,draft:(editId!=null&&editDraft?editDraft:st)}))}catch(e){$('#storeWarn').hidden=false}
+function persist(){if(!LOADED)return;try{localStorage.setItem(SKEY,JSON.stringify({v:1,coffees:coffees,grinders:grinders,schedules:schedules,filters:filters,history:history,nid:nid,draft:(editId!=null&&editDraft?editDraft:st)}))}catch(e){$('#storeWarn').hidden=false}
   if(SYNC)queuePush()}
 (function(){try{var raw=localStorage.getItem(SKEY);if(raw){var d=JSON.parse(raw);
   if(Array.isArray(d.coffees))coffees=d.coffees;if(Array.isArray(d.grinders)&&d.grinders.length)grinders=d.grinders;
-  if(Array.isArray(d.history))history=d.history;if(Array.isArray(d.schedules))schedules=d.schedules;if(d.nid)nid=d.nid;
+  if(Array.isArray(d.history))history=d.history;if(Array.isArray(d.schedules))schedules=d.schedules;if(Array.isArray(d.filters))filters=d.filters;if(d.nid)nid=d.nid;
   if(d.draft&&typeof d.draft==='object'){var b=blank();for(var k in d.draft)b[k]=d.draft[k];if(!Array.isArray(b.pours)||!b.pours.length)b.pours=[{t:'0:00',up:''}];st=b}}}catch(e){}
+  if(!st.filter)st.filter=lastFilter();
   LOADED=true})();
 
 /* Optional sync to the NAS server (server.js). Without it, this page just uses browser storage. */
 var SYNC=false,srev=0,lastSent='',pt=null,REVKEY='brewlog.rev';
-function dataOnly(){return{v:1,coffees:coffees,grinders:grinders,schedules:schedules,history:history,nid:nid}}
+function dataOnly(){return{v:1,coffees:coffees,grinders:grinders,schedules:schedules,filters:filters,history:history,nid:nid}}
 function setSyncUI(t,bad){var e=$('#syncMsg');if(e){e.textContent=t;e.style.color=bad?'var(--bad)':''}}
 function hasData(d){return!!d&&((d.history||[]).length||(d.coffees||[]).length||(d.schedules||[]).length)}
 function queuePush(){if(JSON.stringify(dataOnly())===lastSent)return;clearTimeout(pt);pt=setTimeout(push,700)}
 function adopt(j,msg){try{var o={};try{o=JSON.parse(localStorage.getItem(SKEY))||{}}catch(e){}
-  o.v=1;o.coffees=j.data.coffees;o.grinders=j.data.grinders||grinders;o.schedules=j.data.schedules||[];o.history=j.data.history;o.nid=j.data.nid||100;
+  o.v=1;o.coffees=j.data.coffees;o.grinders=j.data.grinders||grinders;o.schedules=j.data.schedules||[];o.filters=j.data.filters||filters;o.history=j.data.history;o.nid=j.data.nid||100;
   localStorage.setItem(SKEY,JSON.stringify(o));localStorage.setItem(REVKEY,String(j.rev));if(msg)sessionStorage.setItem('brewlog.msg',msg)}catch(e){}
   location.reload()}
 function putData(d,base){return fetch('api/data',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({baseRev:base,data:d})}).then(function(r){return r.json().then(function(j){return{s:r.status,j:j}})})}
@@ -1038,16 +1065,16 @@ $('#updateBtn').addEventListener('click',function(){var b=$('#updateBtn');b.disa
     toast('Updated '+x.j.updated.join(' and ')+'. Reloading…');setTimeout(waitReload,x.j.restart?2500:800)})
   .catch(function(){b.disabled=false;b.textContent='Update app';toast('Could not reach the NAS server.')})});
 function download(name,text){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500)}
-$('#exportBtn').addEventListener('click',function(){download('brew-log-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({v:1,coffees:coffees,grinders:grinders,schedules:schedules,history:history,nid:nid},null,1));toast('Backup downloaded.')});
+$('#exportBtn').addEventListener('click',function(){download('brew-log-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({v:1,coffees:coffees,grinders:grinders,schedules:schedules,filters:filters,history:history,nid:nid},null,1));toast('Backup downloaded.')});
 $('#importBtn').addEventListener('click',function(){$('#importFile').click()});
 $('#importFile').addEventListener('change',function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();
   r.onload=function(){try{var d=JSON.parse(r.result);if(!Array.isArray(d.coffees)||!Array.isArray(d.history))throw 0;
     if(!confirm('Replace everything in this browser with the backup ('+d.history.length+' brews, '+d.coffees.length+' coffees)?'))return;
-    var nd={v:1,coffees:d.coffees,grinders:d.grinders||grinders,schedules:d.schedules||[],history:d.history,nid:d.nid||100};
+    var nd={v:1,coffees:d.coffees,grinders:d.grinders||grinders,schedules:d.schedules||[],filters:d.filters||filters,history:d.history,nid:d.nid||100};
     var done=function(){localStorage.setItem(SKEY,JSON.stringify(nd));location.reload()};
     if(SYNC)putData(nd,srev).then(function(x){if(x.s===200){localStorage.setItem(REVKEY,String(x.j.rev));done()}else toast('The NAS rejected the import. Reload and try again.')}).catch(function(){toast('Cannot reach the NAS.')});else done()}
     catch(x){toast('That file is not a Brew Log backup.')}};r.readAsText(f);e.target.value=''});
-$('#clearBtn2').addEventListener('click',function(){if(confirm('Are you sure? This deletes every brew, coffee and pour schedule. If this is synced to your NAS, that copy is cleared too. Export a backup first if you want to keep them.')&&(function(){var t=prompt('This cannot be undone. Type delete to confirm.');if(t===null)return false;if(t.trim().toLowerCase()!=='delete'){toast('Nothing was deleted. You did not type delete.');return false}return true})()){var wipe=function(){localStorage.removeItem(SKEY);localStorage.removeItem(REVKEY);location.reload()};if(SYNC)putData({v:1,coffees:[],grinders:grinders,schedules:[],history:[],nid:100},srev).then(wipe).catch(function(){toast('Cannot reach the NAS.')});else wipe()}});
+$('#clearBtn2').addEventListener('click',function(){if(confirm('Are you sure? This deletes every brew, coffee and pour schedule. If this is synced to your NAS, that copy is cleared too. Export a backup first if you want to keep them.')&&(function(){var t=prompt('This cannot be undone. Type delete to confirm.');if(t===null)return false;if(t.trim().toLowerCase()!=='delete'){toast('Nothing was deleted. You did not type delete.');return false}return true})()){var wipe=function(){localStorage.removeItem(SKEY);localStorage.removeItem(REVKEY);location.reload()};if(SYNC)putData({v:1,coffees:[],grinders:grinders,schedules:[],filters:filters,history:[],nid:100},srev).then(wipe).catch(function(){toast('Cannot reach the NAS.')});else wipe()}});
 syncInputs();renderHist();
 })();
 </script>
