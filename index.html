@@ -161,6 +161,7 @@ input[type=range]{width:100%;accent-color:var(--accent);min-height:44px}
 .ci{padding:12px 14px;display:flex;flex-direction:column;gap:6px}
 .ci .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
 .cf{font-size:15px}
+.bstats.s5{grid-template-columns:repeat(auto-fit,minmax(104px,1fr))}
 .bstats.s3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .trends{max-width:980px}
 .tfilters{margin-bottom:4px}
@@ -955,10 +956,11 @@ function renderBrewList(){var list=brewsFiltered(),n=activeCount();
   if(!list.length){ul.innerHTML='<li class="empty">'+(history.length?'No brews match. Try fewer filters.':'No brews yet. Log your first one on the Log a brew tab.')+'</li>';return}
   list.forEach(function(h){var open=!!bopen[h.id],r=num(h.rating),li=document.createElement('li');li.className='bi';
     var tags=(h.taste||[]).concat(h.tech||[]).map(function(t){return'<span class="tag">'+esc(t)+'</span>'});if(h.bag>1)tags.unshift('<span class="tag">Bag '+h.bag+'</span>');if(h.ex)tags.push('<span class="tag ex">example</span>');
-    var meta='<span>'+esc(dateLabel(h.date))+'</span><span class="bm">'+esc(h.method)+'</span>';
+    var meta='<span>'+esc(dateLabel(h.date))+'</span>';
+    var wt=num(h.waterA)!=null?num(h.waterA):num(h.waterT),cw=num(h.coffeeA)!=null?num(h.coffeeA):num(h.coffeeT);
     function stat(l,v){return'<span class="st"><span class="sl">'+l+'</span><span class="sv">'+esc(v||'–')+'</span></span>'}
     li.innerHTML='<button type="button" class="bhead" aria-expanded="'+open+'"><span class="b1"><strong>'+esc(h.coffee)+'</strong><span class="rate">'+(r!=null?r.toFixed(1):'–')+'</span></span>'+
-      '<span class="b2">'+meta+'</span><span class="bstats">'+stat('Grind',h.grind?h.grinder+' '+h.grind:'')+stat('Temp',h.temp?h.temp+'°F':'')+stat('Ratio',recRatio(h))+stat('Drawdown',h.dd)+'</span>'+(open||!h.notes?'':'<span class="b3">'+esc(h.notes)+'</span>')+'<span class="btags">'+tags.join('')+'</span></button>';
+      '<span class="b2">'+meta+'</span><span class="bstats s5">'+stat('Grind',h.grind?h.grinder+' '+h.grind:'')+stat('Water',wt!=null?r1(wt)+' g':'')+stat('Temp',h.temp?h.temp+'°F':'')+stat('Coffee',cw!=null?r1(cw)+' g':'')+stat('Style',h.method)+'</span>'+(open||!h.notes?'':'<span class="b3">'+esc(h.notes)+'</span>')+'<span class="btags">'+tags.join('')+'</span></button>';
     li.querySelector('.bhead').addEventListener('click',function(){bopen[h.id]=!open;renderBrewList()});
     if(open){var body=document.createElement('div');body.className='bbody';
       body.innerHTML='<div class="card">'+cardFor(h)+'</div><div class="acts"><button type="button" class="btn primary small" data-a="again">Brew again</button><button type="button" class="btn small" data-a="edit">Edit</button><button type="button" class="btn small ghost" data-a="del">Delete</button></div>';
