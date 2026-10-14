@@ -236,6 +236,7 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
   <section id="panel-log">
     <div class="grid">
       <form class="form" id="form" autocomplete="off">
+        <div id="editBar" hidden style="display:none;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border:1px solid var(--viz,#888);border-radius:10px"><strong id="editLbl">Editing brew</strong><button type="button" class="btn small" id="editCancel">Cancel edit</button></div>
 
         <fieldset class="sec">
           <legend>Coffee</legend>
@@ -623,7 +624,7 @@ function renderCoffeeCards(){persist();var ul=$('#c_list');ul.innerHTML='';
       '<div class="bstats s3">'+statCell('Brews',String(bs.length))+statCell('Best',best)+statCell('Last brewed',last)+'</div>'+
       '<div class="acts"><button type="button" class="btn primary small" data-a="brew">Brew this</button><button type="button" class="btn small" data-a="view">View brews</button><button type="button" class="btn small ghost" data-a="edit">Edit</button><button type="button" class="btn small ghost" data-a="rm">Remove</button></div>';
     li.querySelector('[data-a=brew]').addEventListener('click',function(){
-      if(bs.length)startFrom(bs[0]);else{st=blank();st.coffee=c.name;syncInputs();showTab('log');toast('New brew for '+c.name+'.');window.scrollTo({top:0})}});
+      if(bs.length)startFrom(bs[0]);else{if(editId!=null)endEdit();st=blank();st.coffee=c.name;syncInputs();showTab('log');toast('New brew for '+c.name+'.');window.scrollTo({top:0})}});
     li.querySelector('[data-a=view]').addEventListener('click',function(){bf.q='';bf.coffee=c.name;bf.method='';bf.min=0;bf.tags=[];showTab('brews');window.scrollTo({top:0})});
     li.querySelector('[data-a=edit]').addEventListener('click',function(){openCoffeeForm(i)});
     li.querySelector('[data-a=rm]').addEventListener('click',function(){removeCoffee(i)});
@@ -641,13 +642,22 @@ if(window.matchMedia&&matchMedia('(max-width:979px)').matches){$('#cardDetails')
 
 $('#form').addEventListener('submit',function(e){e.preventDefault();
   if(!st.coffee.trim()){$('#f_coffee').scrollIntoView({block:'center'});toast('Pick a coffee first.');return}
+  if(editId!=null){var ix=-1;history.forEach(function(h,i){if(h.id===editId)ix=i});
+    if(ix>-1){var u=JSON.parse(JSON.stringify(st));u.id=editId;u.date=history[ix].date;u.level=(coffeeRec(u.coffee)||{}).level||'';if(history[ix].ex)u.ex=true;history[ix]=u}
+    endEdit();syncInputs();renderHist();renderBrews();showTab('brews');toast('Brew updated.');return}
   var saved=JSON.parse(JSON.stringify(st));saved.id=nid++;saved.level=(coffeeRec(saved.coffee)||{}).level||'';saved.date=new Date().toISOString().slice(0,10);history.unshift(saved);
   var s=st;st=blank();['coffee','waterName','waterLevel','method','waterT','coffeeT','grinder','grind','temp','filter','roastDate','tech','pourNote'].forEach(function(k){st[k]=Array.isArray(s[k])?s[k].slice():s[k]});
   st.pours=s.pours.map(function(p){return{t:p.t,up:p.up}});
   syncInputs();renderHist();toast('Saved. Form kept as the start of your next brew.')});
 $('#clearBtn').addEventListener('click',function(){st=blank();syncInputs();toast('Form cleared.')});
 
-function startFrom(h){var b=blank();
+var editId=null,editDraft=null;
+function setEditUI(on,h){$('#editBar').hidden=!on;$('#editBar').style.display=on?'flex':'none';$('#saveBtn').textContent=on?'Save changes':'Save brew';$('#clearBtn').hidden=on;if(on)$('#editLbl').textContent='Editing: '+h.coffee+(h.date?' · '+dateLabel(h.date):'')}
+function startEdit(h){if(editId==null)editDraft=st;var b=blank();for(var k in h)b[k]=JSON.parse(JSON.stringify(h[k]));if(!Array.isArray(b.pours)||!b.pours.length)b.pours=[{t:'0:00',up:''}];
+  delete b.ex;st=b;editId=h.id;setEditUI(true,h);syncInputs();showTab('log');window.scrollTo({top:0,behavior:'smooth'})}
+function endEdit(){editId=null;st=editDraft||blank();editDraft=null;setEditUI(false)}
+$('#editCancel').addEventListener('click',function(){endEdit();syncInputs();showTab('brews');toast('Edit cancelled.')});
+function startFrom(h){if(editId!=null)endEdit();var b=blank();
   ['coffee','method','waterName','waterLevel','waterT','coffeeT','grinder','grind','temp','filter','pourNote'].forEach(function(k){if(h[k]!=null&&h[k]!=='')b[k]=h[k]});
   b.tech=(h.tech||[]).slice();
   b.pours=(h.pours&&h.pours.length)?h.pours.map(function(p){return{t:p.t,up:p.up}}):[{t:'0:00',up:''}];
@@ -789,7 +799,7 @@ function crow(label,pair,fmt,none){
   else{v=fmt(pair[0]);note='same'}
   return'<div class="crow"><span class="cl">'+esc(label)+'</span><span class="'+cls+'">'+esc(v)+'</span><span class="cn">'+esc(note)+'</span></div>'}
 function startIdea(o){
-  if(o.base)startFrom(o.base);else{st=blank();st.coffee=o.coffee;showTab('log')}
+  if(o.base)startFrom(o.base);else{if(editId!=null)endEdit();st=blank();st.coffee=o.coffee;showTab('log')}
   if(o.g)st.grind=g1(o.g[1]);if(o.t)st.temp=String(o.t[1]);if(o.d)st.coffeeT=g1(o.d[1]);
   syncInputs();toast('Loaded the idea for '+o.coffee+'. Results are blank.');window.scrollTo({top:0,behavior:'smooth'})}
 function renderIdeas(){
@@ -851,8 +861,9 @@ function renderBrewList(){var list=brewsFiltered(),n=activeCount();
       '<span class="b2">'+meta+'</span><span class="bstats">'+stat('Grind',h.grind?h.grinder+' '+h.grind:'')+stat('Temp',h.temp?h.temp+'°F':'')+stat('Ratio',recRatio(h))+stat('Drawdown',h.dd)+'</span>'+(open||!h.notes?'':'<span class="b3">'+esc(h.notes)+'</span>')+'<span class="btags">'+tags.join('')+'</span></button>';
     li.querySelector('.bhead').addEventListener('click',function(){bopen[h.id]=!open;renderBrewList()});
     if(open){var body=document.createElement('div');body.className='bbody';
-      body.innerHTML='<div class="card">'+cardFor(h)+'</div><div class="acts"><button type="button" class="btn primary small" data-a="again">Brew again</button><button type="button" class="btn small ghost" data-a="del">Delete</button></div>';
+      body.innerHTML='<div class="card">'+cardFor(h)+'</div><div class="acts"><button type="button" class="btn primary small" data-a="again">Brew again</button><button type="button" class="btn small" data-a="edit">Edit</button><button type="button" class="btn small ghost" data-a="del">Delete</button></div>';
       body.querySelector('[data-a=again]').addEventListener('click',function(){startFrom(h)});
+      body.querySelector('[data-a=edit]').addEventListener('click',function(){startEdit(h)});
       body.querySelector('[data-a=del]').addEventListener('click',function(){var i=history.indexOf(h);history.splice(i,1);renderBrewList();renderHist();
         toast('Deleted the '+h.coffee+' brew.',function(){history.splice(i,0,h);renderBrewList();renderHist()})});
       li.appendChild(body)}
@@ -867,7 +878,7 @@ $('#b_clear').addEventListener('click',function(){bf.q='';bf.coffee='';bf.method
 
 /* Saving: everything lives in this browser's localStorage */
 var LOADED=false,SKEY='brewlog.v1';
-function persist(){if(!LOADED)return;try{localStorage.setItem(SKEY,JSON.stringify({v:1,coffees:coffees,grinders:grinders,history:history,nid:nid,draft:st}))}catch(e){$('#storeWarn').hidden=false}}
+function persist(){if(!LOADED)return;try{localStorage.setItem(SKEY,JSON.stringify({v:1,coffees:coffees,grinders:grinders,history:history,nid:nid,draft:(editId!=null&&editDraft?editDraft:st)}))}catch(e){$('#storeWarn').hidden=false}}
 (function(){try{var raw=localStorage.getItem(SKEY);if(raw){var d=JSON.parse(raw);
   if(Array.isArray(d.coffees))coffees=d.coffees;if(Array.isArray(d.grinders)&&d.grinders.length)grinders=d.grinders;
   if(Array.isArray(d.history))history=d.history;if(d.nid)nid=d.nid;
