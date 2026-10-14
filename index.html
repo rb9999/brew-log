@@ -494,7 +494,8 @@ function r1(n){return(Math.round(n*10)/10).toString()}
 
 var METHODS=['V60','Kalita Wave','Aeropress'];
 var WATERS=['Tap','Light','Medium','Dark'];
-var TASTE=['Balanced','Sweet','Fruity','Roasty','Bitter','Sour','Weak','Muted','Astringent'];
+var TASTE=['Balanced','Sweet','Fruity','Roasty','Bright','Juicy','Clean','Floral','Chocolatey','Nutty','Caramel','Citrus','Berry','Smooth','Full body','Thin','Bitter','Sour','Weak','Muted','Astringent','Harsh','Dry','Salty','Flat','Grassy','Smoky'];
+var OVER=['Bitter','Astringent','Harsh','Dry'],UNDER=['Sour','Muted','Grassy','Flat'],LIGHT=['Weak','Thin'];
 var TECH=['Melodrip','Swirl','Vigorous pour','Gentle pour'];
 
 function blank(){return{coffee:'',waterName:'',waterLevel:'',method:'',waterT:'240',waterA:'',coffeeT:'',coffeeA:'',grinder:'GT',grind:'',temp:'',
@@ -873,9 +874,9 @@ function ideaFor(c){
   var wC=/coarser/.test(nl),wF=/finer/.test(nl),wH=/(higher temp|hotter|warmer)/.test(nl),wK=/(lower temp|cooler)/.test(nl);
   if(wC||wF||wH||wK){dg=wC?.3:wF?-.3:0;dt=wH?3:wK?-3:0;
     o.why.push('Your note from '+dateLabel(L.date)+': “'+note.replace(/\s+/g,' ').slice(0,90)+'”')}
-  else if(pick(['Bitter','Astringent']).length){dg=.3;o.why.push('The last cup was '+pick(['Bitter','Astringent']).join(' and ').toLowerCase()+', which points to over-extraction. A coarser grind takes less from the grounds.')}
-  else if(pick(['Sour','Muted']).length){dg=-.3;o.why.push('The last cup was '+pick(['Sour','Muted']).join(' and ').toLowerCase()+', which points to under-extraction. A finer grind takes more from the grounds.')}
-  else if(pick(['Weak']).length){dd=1;o.why.push('The last cup was weak. More coffee in the same 240 g of water adds strength.')}
+  else if(pick(OVER).length){dg=.3;o.why.push('The last cup was '+pick(OVER).join(' and ').toLowerCase()+', which points to over-extraction. A coarser grind takes less from the grounds.')}
+  else if(pick(UNDER).length){dg=-.3;o.why.push('The last cup was '+pick(UNDER).join(' and ').toLowerCase()+', which points to under-extraction. A finer grind takes more from the grounds.')}
+  else if(pick(LIGHT).length){dd=1;o.why.push('The last cup was '+pick(LIGHT).join(' and ').toLowerCase()+'. More coffee in the same 240 g of water adds strength.')}
   else if(r!=null&&r>=7){o.why.push('Rated '+r.toFixed(1)+'. Repeat it unchanged once to see if it holds.')}
   else if(best&&best!==L&&num(best.rating)>(r==null?0:r)){dg=num(best.grind)-g;dt=num(best.temp)-t;dd=num(best.coffeeT)-d;
     o.why.push('Your best brew of this coffee ('+num(best.rating).toFixed(1)+', '+dateLabel(best.date)+') used '+best.grinder+' '+best.grind+' at '+best.temp+'°F. Return to it.')}
