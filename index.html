@@ -406,6 +406,7 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
           <div class="field"><label for="ac_level" class="hint">Roast (optional)</label><select id="ac_level"><option value="">Not set</option><option>Light</option><option>Medium</option><option>Dark</option></select></div>
           <div class="field" style="grid-column:span 2"><label for="ac_flavor" class="hint">Flavor notes (optional)</label><input type="text" id="ac_flavor" placeholder="chocolate, citrus, floral" autocomplete="off"></div>
         </div>
+        <div class="field"><label for="ac_comment" class="hint">Comments (optional)</label><textarea id="ac_comment" rows="3" placeholder="Where you bought it, price, how it brews, what to try next…"></textarea></div>
         <div class="acts"><button type="button" class="btn primary small" id="ac_add">Add to list</button><button type="button" class="btn ghost small" id="ac_cancel">Cancel</button></div>
       </div>
       <ul class="blist" id="c_list" style="margin-top:8px"></ul>
@@ -623,8 +624,8 @@ var tt;function toast(m,undo){var t=$('#toast');t.textContent=m;
 /* coffee list, add and remove */
 var editIdx=-1;
 function daysOff(c){if(!c||!c.roast)return'';var d=Math.round((Date.now()-new Date(c.roast+'T00:00:00').getTime())/864e5);return(!isNaN(d)&&d>=0)?d+' days off roast':''}
-function openCoffeeForm(i){editIdx=i;var c=i>=0?coffees[i]:{name:'',roaster:'',roast:'',level:'',flavor:''};
-  $('#ac_name').value=c.name;$('#ac_roaster').value=c.roaster||'';$('#ac_roast').value=c.roast||'';$('#ac_level').value=c.level||'';$('#ac_flavor').value=c.flavor||'';
+function openCoffeeForm(i){editIdx=i;var c=i>=0?coffees[i]:{name:'',roaster:'',roast:'',level:'',flavor:'',comment:''};
+  $('#ac_name').value=c.name;$('#ac_roaster').value=c.roaster||'';$('#ac_roast').value=c.roast||'';$('#ac_level').value=c.level||'';$('#ac_flavor').value=c.flavor||'';$('#ac_comment').value=c.comment||'';
   $('#ac_add').textContent=i>=0?'Save changes':'Add to list';$('#addCoffee').hidden=false;$('#ac_name').focus();$('#addCoffee').scrollIntoView({block:'nearest'})}
 function closeCoffeeForm(){editIdx=-1;$('#addCoffee').hidden=true}
 $('#f_coffee').addEventListener('change',function(e){st.coffee=e.target.value;update()});
@@ -632,7 +633,7 @@ $('#c_add').addEventListener('click',function(){openCoffeeForm(-1)});
 $('#ac_cancel').addEventListener('click',closeCoffeeForm);
 $('#addCoffee').addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();$('#ac_add').click()}});
 $('#ac_add').addEventListener('click',function(){var n=$('#ac_name').value.trim();if(!n){$('#ac_name').focus();return}
-  var data={name:n,roaster:$('#ac_roaster').value.trim(),roast:$('#ac_roast').value,level:$('#ac_level').value,flavor:$('#ac_flavor').value.trim()};
+  var data={name:n,roaster:$('#ac_roaster').value.trim(),roast:$('#ac_roast').value,level:$('#ac_level').value,flavor:$('#ac_flavor').value.trim(),comment:$('#ac_comment').value.trim()};
   if(editIdx>=0){var oc=coffees[editIdx],old=oc.name;data.archived=oc.archived;data.bags=oc.bags;coffees[editIdx]=data;if(st.coffee===old)st.coffee=n;
     history.forEach(function(h){if(h.coffee===old||h.coffee===n){h.coffee=n;h.level=data.level}});toast('Saved '+n)}
   else{var ex=coffeeRec(n);if(ex){var wasA=ex.archived;for(var k in data)ex[k]=data[k];if(wasA){ex.archived=false;ex.bags=(ex.bags||1)+1;toast('Added '+n+' back as bag '+ex.bags)}else toast('Saved '+n)}else{data.bags=1;coffees.push(data);toast('Added '+n)}}
@@ -654,7 +655,7 @@ function renderCoffeeCards(){persist();var ul=$('#c_list'),ua=$('#c_arch');ul.in
     var meta=[c.roaster,(c.bags>1?'Bag '+c.bags:''),arch?'':daysOff(c)].filter(Boolean).map(esc).join(' · ');
     var li=document.createElement('li');li.className='bi ci';
     li.innerHTML='<div class="b1"><strong>'+esc(c.name)+'</strong>'+(c.level?'<span class="rate">'+esc(c.level)+'</span>':'')+'</div>'+
-      (c.flavor?'<div class="cf">'+esc(c.flavor)+'</div>':'')+(meta?'<div class="b2">'+meta+'</div>':'')+
+      (c.flavor?'<div class="cf">'+esc(c.flavor)+'</div>':'')+(c.comment?'<div class="b2" style="white-space:pre-wrap">'+esc(c.comment)+'</div>':'')+(meta?'<div class="b2">'+meta+'</div>':'')+
       '<div class="bstats s3">'+statCell('Brews',String(bs.length))+statCell('Best',best)+statCell('Last brewed',last)+'</div>'+
       '<div class="acts">'+(arch?'<button type="button" class="btn primary small" data-a="back">Add back (new bag)</button>':'<button type="button" class="btn primary small" data-a="brew">Brew this</button>')+'<button type="button" class="btn small" data-a="view">View brews</button><button type="button" class="btn small ghost" data-a="edit">Edit</button>'+(arch?'':'<button type="button" class="btn small ghost" data-a="rm">Remove</button>')+'<button type="button" class="btn small ghost" data-a="del">Delete</button></div>';
     var q=function(a){return li.querySelector('[data-a='+a+']')};
