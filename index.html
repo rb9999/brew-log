@@ -239,6 +239,7 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
   <section id="panel-log">
     <div class="grid">
       <form class="form" id="form" autocomplete="off">
+        <div id="stateBar" role="status" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--line);border-radius:10px"><span id="stateMsg"></span><button type="button" class="btn small" id="stateBtn"></button></div>
         <div id="editBar" hidden style="display:none;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border:1px solid var(--viz,#888);border-radius:10px"><strong id="editLbl">Editing brew</strong><button type="button" class="btn small" id="editCancel">Cancel edit</button></div>
 
         <fieldset class="sec">
@@ -601,7 +602,19 @@ function cardHtml(){
   '<div class="c-notes">'+esc(st.notes)+(st.notes?'':'&nbsp;')+'</div>'+
   (st.taste.length?'<div class="c-tags">'+esc(st.taste.join(' · '))+'</div>':'')}
 
-function update(){persist();$('#rateRange').classList.toggle('na',num(st.rating)==null);
+
+/* Banner: is this form new, a draft, or started from something? */
+var startedFrom='';
+function isPristine(){try{return JSON.stringify(st)===JSON.stringify(blank())}catch(e){return false}}
+function updateBanner(){var bar=$('#stateBar');if(!bar)return;
+  if(editId!=null){bar.hidden=true;return}bar.hidden=false;
+  var msg=$('#stateMsg'),btn=$('#stateBtn');
+  if(isPristine()){startedFrom='';bar.style.borderColor='var(--line)';
+    msg.innerHTML='<strong>New brew.</strong> <span class="hint">Only your defaults are filled in (water, grinder, filter).</span>';
+    var last=history[0];if(last){btn.hidden=false;btn.textContent='Copy last brew';btn.onclick=function(){startFrom(last)}}else btn.hidden=true}
+  else if(startedFrom){bar.style.borderColor='var(--viz,#888)';msg.innerHTML='<strong>'+esc(startedFrom)+'</strong>';btn.hidden=false;btn.textContent='Start over';btn.onclick=function(){st=blank();startedFrom='';syncInputs();toast('Form cleared.')}}
+  else{bar.style.borderColor='var(--warn,#b8860b)';msg.innerHTML='<strong>Draft in progress</strong> <span class="hint">'+(st.coffee?esc(coffeeLabel(st.coffee)):'no coffee chosen yet')+'. Not saved yet.</span>';btn.hidden=false;btn.textContent='Start a new brew';btn.onclick=function(){st=blank();startedFrom='';syncInputs();toast('Form cleared.')}}}
+function update(){persist();updateBanner();$('#rateRange').classList.toggle('na',num(st.rating)==null);
   var wa=num(st.waterA),wt=num(st.waterT),ca=num(st.coffeeA),ct=num(st.coffeeT);
   var w=wa!=null?wa:wt,c=ca!=null?ca:ct;
   $('#o_ratio').textContent=(w&&c)?'1 : '+r1(w/c):'–';
@@ -686,7 +699,7 @@ function renderCoffeeCards(){persist();var ul=$('#c_list'),ua=$('#c_arch');ul.in
       '<div class="acts">'+(arch?'<button type="button" class="btn primary small" data-a="back">Add back (new bag)</button>':'<button type="button" class="btn primary small" data-a="brew">Brew this</button>')+'<button type="button" class="btn small" data-a="view">View brews</button><button type="button" class="btn small ghost" data-a="edit">Edit</button>'+(arch?'':'<button type="button" class="btn small ghost" data-a="rm">Remove</button>')+'<button type="button" class="btn small ghost" data-a="del">Delete</button></div>';
     var q=function(a){return li.querySelector('[data-a='+a+']')};
     if(q('brew'))q('brew').addEventListener('click',function(){
-      if(bs.length)startFrom(bs[0]);else{if(editId!=null)endEdit();st=blank();st.coffee=c.name;syncInputs();showTab('log');toast('New brew for '+c.name+'.');window.scrollTo({top:0})}});
+      if(bs.length)startFrom(bs[0]);else{if(editId!=null)endEdit();st=blank();st.coffee=c.name;startedFrom='New brew for '+coffeeLabel(c.name)+'.';syncInputs();showTab('log');toast('New brew for '+c.name+'.');window.scrollTo({top:0})}});
     if(q('back'))q('back').addEventListener('click',function(){restoreCoffee(i)});
     q('view').addEventListener('click',function(){bf.q='';bf.coffee=c.name;bf.method='';bf.min=0;bf.tags=[];showTab('brews');window.scrollTo({top:0})});
     q('edit').addEventListener('click',function(){openCoffeeForm(i)});
@@ -711,13 +724,12 @@ $('#form').addEventListener('submit',function(e){e.preventDefault();
     if(ix>-1){var u=JSON.parse(JSON.stringify(st));u.id=editId;u.date=history[ix].date;u.level=(coffeeRec(u.coffee)||{}).level||'';if(history[ix].ex)u.ex=true;history[ix]=u}
     endEdit();syncInputs();renderHist();renderBrews();showTab('brews');toast('Brew updated.');return}
   var saved=JSON.parse(JSON.stringify(st));saved.id=nid++;saved.bag=(coffeeRec(saved.coffee)||{}).bags||1;saved.level=(coffeeRec(saved.coffee)||{}).level||'';saved.date=new Date().toISOString().slice(0,10);history.unshift(saved);
-  var s=st;st=blank();['coffee','waterName','waterLevel','method','waterT','coffeeT','grinder','grind','temp','filter','roastDate','tech','schedule'].forEach(function(k){st[k]=Array.isArray(s[k])?s[k].slice():s[k]});
-  st.pours=s.pours.map(function(p){return{t:p.t,up:p.up}});
-  syncInputs();renderHist();toast('Saved. Form kept as the start of your next brew.')});
-$('#clearBtn').addEventListener('click',function(){st=blank();syncInputs();toast('Form cleared.')});
+  st=blank();startedFrom='';
+  syncInputs();renderHist();window.scrollTo({top:0,behavior:'smooth'});toast('Saved. The form is clear and ready for your next brew.')});
+$('#clearBtn').addEventListener('click',function(){st=blank();startedFrom='';syncInputs();toast('Form cleared.')});
 
 var editId=null,editDraft=null;
-function setEditUI(on,h){$('#editBar').hidden=!on;$('#editBar').style.display=on?'flex':'none';$('#saveBtn').textContent=on?'Save changes':'Save brew';$('#clearBtn').hidden=on;if(on)$('#editLbl').textContent='Editing: '+h.coffee+(h.date?' · '+dateLabel(h.date):'')}
+function setEditUI(on,h){updateBanner();$('#editBar').hidden=!on;$('#editBar').style.display=on?'flex':'none';$('#saveBtn').textContent=on?'Save changes':'Save brew';$('#clearBtn').hidden=on;if(on)$('#editLbl').textContent='Editing: '+h.coffee+(h.date?' · '+dateLabel(h.date):'')}
 function startEdit(h){if(editId==null)editDraft=st;var b=blank();for(var k in h)b[k]=JSON.parse(JSON.stringify(h[k]));if(!Array.isArray(b.pours)||!b.pours.length)b.pours=[{t:'0:00',up:''}];
   delete b.ex;st=b;editId=h.id;setEditUI(true,h);syncInputs();showTab('log');window.scrollTo({top:0,behavior:'smooth'})}
 function endEdit(){editId=null;st=editDraft||blank();editDraft=null;setEditUI(false)}
@@ -792,7 +804,7 @@ function startFrom(h){if(editId!=null)endEdit();var b=blank();
   b.tech=(h.tech||[]).slice();
   b.pours=(h.pours&&h.pours.length)?h.pours.map(function(p){return{t:p.t,up:p.up}}):[{t:'0:00',up:''}];
   if(!coffeeRec(h.coffee))coffees.push({name:h.coffee,roaster:'',roast:''});
-  st=b;syncInputs();showTab('log');toast('Started from '+h.coffee+'. Results are blank.');window.scrollTo({top:0,behavior:'smooth'})}
+  st=b;startedFrom='Started from '+coffeeLabel(h.coffee)+(h.date?' · '+dateLabel(h.date):'')+'. Results are blank.';syncInputs();showTab('log');toast('Started from '+h.coffee+'. Results are blank.');window.scrollTo({top:0,behavior:'smooth'})}
 function showTab(n){Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'),function(x){x.setAttribute('aria-selected',x.dataset.tab===n?'true':'false');$('#panel-'+x.dataset.tab).hidden=(x.dataset.tab!==n)});if(n==='brews')renderBrews();if(n==='coffees')renderCoffeeCards();if(n==='pours')renderSchedules();if(n==='trends')renderTrends();if(n==='ideas')renderIdeas()}
 Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'),function(b){b.addEventListener('click',function(){showTab(b.dataset.tab)})});
 $('#seeAll').addEventListener('click',function(){showTab('brews');window.scrollTo({top:0})});
@@ -933,7 +945,7 @@ function crow(label,pair,fmt,none){
   else{v=fmt(pair[0]);note='same'}
   return'<div class="crow"><span class="cl">'+esc(label)+'</span><span class="'+cls+'">'+esc(v)+'</span><span class="cn">'+esc(note)+'</span></div>'}
 function startIdea(o){
-  if(o.base)startFrom(o.base);else{if(editId!=null)endEdit();st=blank();st.coffee=o.coffee;showTab('log')}
+  if(o.base)startFrom(o.base);else{if(editId!=null)endEdit();st=blank();st.coffee=o.coffee;startedFrom='Started from an idea for '+coffeeLabel(o.coffee)+'.';showTab('log')}
   if(o.g)st.grind=g1(o.g[1]);if(o.t)st.temp=String(o.t[1]);if(o.d)st.coffeeT=g1(o.d[1]);
   syncInputs();toast('Loaded the idea for '+o.coffee+'. Results are blank.');window.scrollTo({top:0,behavior:'smooth'})}
 function renderIdeas(){
@@ -1015,13 +1027,15 @@ $('#b_clear').addEventListener('click',function(){bf.q='';bf.coffee='';bf.method
 
 /* Saving: everything lives in this browser's localStorage */
 var LOADED=false,SKEY='brewlog.v1';
-function persist(){if(!LOADED)return;try{localStorage.setItem(SKEY,JSON.stringify({v:1,coffees:coffees,grinders:grinders,schedules:schedules,filters:filters,history:history,nid:nid,draft:(editId!=null&&editDraft?editDraft:st)}))}catch(e){$('#storeWarn').hidden=false}
+var draftAt=0,lastDraftJs='';
+function persist(){if(!LOADED)return;try{var dr=(editId!=null&&editDraft?editDraft:st),dj=JSON.stringify(dr);if(dj!==lastDraftJs){lastDraftJs=dj;draftAt=Date.now()}localStorage.setItem(SKEY,JSON.stringify({v:1,draftAt:draftAt,coffees:coffees,grinders:grinders,schedules:schedules,filters:filters,history:history,nid:nid,draft:(editId!=null&&editDraft?editDraft:st)}))}catch(e){$('#storeWarn').hidden=false}
   if(SYNC)queuePush()}
 (function(){try{var raw=localStorage.getItem(SKEY);if(raw){var d=JSON.parse(raw);
   if(Array.isArray(d.coffees))coffees=d.coffees;if(Array.isArray(d.grinders)&&d.grinders.length)grinders=d.grinders;
   if(Array.isArray(d.history))history=d.history;if(Array.isArray(d.schedules))schedules=d.schedules;if(Array.isArray(d.filters))filters=d.filters;if(d.nid)nid=d.nid;
   if(d.draft&&typeof d.draft==='object'){var b=blank();for(var k in d.draft)b[k]=d.draft[k];if(!Array.isArray(b.pours)||!b.pours.length)b.pours=[{t:'0:00',up:''}];st=b}}}catch(e){}
-  if(!st.filter)st.filter=lastFilter();
+  try{var dd0=JSON.parse(localStorage.getItem(SKEY)||'{}');draftAt=dd0.draftAt||Date.now();if(dd0.draftAt&&Date.now()-dd0.draftAt>12*36e5&&JSON.stringify(st)!==JSON.stringify(blank()))st=blank()}catch(e){}
+  if(!st.filter)st.filter=lastFilter();lastDraftJs=JSON.stringify(st);
   LOADED=true})();
 
 /* Optional sync to the NAS server (server.js). Without it, this page just uses browser storage. */
