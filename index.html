@@ -254,6 +254,20 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
             <span class="lbl" id="lbl_method">Brew method</span>
             <div class="chips" id="methods" role="group" aria-labelledby="lbl_method"></div>
           </div>
+          <div class="row">
+            <div class="field">
+              <label for="f_filter">Filter</label>
+              <div style="display:flex;gap:8px;align-items:center"><select id="f_filter" style="flex:1" aria-label="Filter paper"></select><button type="button" class="btn small ghost" id="filterRm" hidden>Remove from list</button></div>
+              <div class="addbox" id="addFilter" hidden>
+                <div class="field"><label for="af_name" class="hint">New filter</label><input type="text" id="af_name" placeholder="Cafec T90" autocomplete="off"></div>
+                <div class="acts"><button type="button" class="btn primary small" id="af_add">Add filter</button><button type="button" class="btn ghost small" id="af_cancel">Cancel</button></div>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <span class="lbl" id="lbl_tech">Technique</span>
+            <div class="chips" id="tech" role="group" aria-labelledby="lbl_tech"></div>
+          </div>
           <div class="field">
             <span class="lbl" id="lbl_water">Water</span>
             <div class="chips" id="waters" role="group" aria-labelledby="lbl_water"></div>
@@ -339,24 +353,6 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
           <div class="field">
             <label for="f_notes">Notes</label>
             <textarea id="f_notes" placeholder="Bitter, try coarser grind"></textarea>
-          </div>
-        </fieldset>
-
-        <fieldset class="sec">
-          <legend>More detail<span class="new-tag">new, optional</span></legend>
-          <div class="row">
-            <div class="field">
-              <label for="f_filter">Filter</label>
-              <div style="display:flex;gap:8px;align-items:center"><select id="f_filter" style="flex:1" aria-label="Filter paper"></select><button type="button" class="btn small ghost" id="filterRm" hidden>Remove from list</button></div>
-              <div class="addbox" id="addFilter" hidden>
-                <div class="field"><label for="af_name" class="hint">New filter</label><input type="text" id="af_name" placeholder="Cafec T90" autocomplete="off"></div>
-                <div class="acts"><button type="button" class="btn primary small" id="af_add">Add filter</button><button type="button" class="btn ghost small" id="af_cancel">Cancel</button></div>
-              </div>
-            </div>
-          </div>
-          <div class="field">
-            <span class="lbl" id="lbl_tech">Technique</span>
-            <div class="chips" id="tech" role="group" aria-labelledby="lbl_tech"></div>
           </div>
         </fieldset>
 
