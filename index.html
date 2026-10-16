@@ -316,12 +316,13 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
           <legend>Result</legend>
           <div class="row">
             <div class="field"><label for="f_waterA">Water poured (actual)</label><div class="unit" data-u="g"><input type="text" inputmode="decimal" class="num" id="f_waterA" placeholder="optional"></div></div>
-            <div class="field"><label for="f_yield">Yield</label><div class="unit" data-u="g"><input type="text" inputmode="decimal" class="num" id="f_yield"></div></div>
+            <div class="field"><label for="f_dd">Drawdown</label><input type="text" inputmode="numeric" class="num" id="f_dd" placeholder="2:50"></div>
+          </div>
+          <span class="hint" id="o_ddHint">Drawdown is the total time until the bed has drained and only droplets are left. 250 becomes 2:50.</span>
+          <div class="row">
+            <div class="field"><label for="f_yield">Yield (water out)</label><div class="unit" data-u="g"><input type="text" inputmode="decimal" class="num" id="f_yield"></div></div>
           </div>
           <span class="hint" id="o_retained"></span>
-          <div class="row">
-            <div class="field"><label for="f_dd">Drawdown</label><input type="text" inputmode="numeric" class="num" id="f_dd" placeholder="2:50"><span class="hint" id="o_ddHint">Total time until the bed has drained and only droplets are left. 250 becomes 2:50.</span></div>
-          </div>
           <div class="field">
             <label for="f_rating">Rating, 1.0 to 10.0</label>
             <div class="rating">
@@ -637,7 +638,7 @@ function update(){persist();updateBanner();$('#rateRange').classList.toggle('na'
   $('#o_gHint').textContent=(gr&&gr.name?gr.code+' is the '+gr.name+'. ':'')+'';
   var ddT=parseT(st.dd),lastT=null;st.pours.forEach(function(p){var t=parseT(p.t);if(t!=null)lastT=t});
   var dh=$('#o_ddHint'),dbad=(ddT!=null&&lastT!=null&&ddT<=lastT);
-  dh.textContent=dbad?'Drawdown should be later than your last pour ('+fmtT(lastT)+').':'Total time until the bed has drained and only droplets are left. 250 becomes 2:50.';dh.style.color=dbad?'var(--warn)':'';
+  dh.textContent=dbad?'Drawdown should be later than your last pour ('+fmtT(lastT)+').':'Drawdown is the total time until the bed has drained and only droplets are left. 250 becomes 2:50.';dh.style.color=dbad?'var(--warn)':'';
   $('#card').innerHTML=cardHtml();
   var bits=[st.method,(w&&c)?'1:'+r1(w/c):'',st.grind?st.grinder+' '+st.grind:'',st.temp?st.temp+'°F':'',st.dd?'DD '+st.dd:'',st.rating?'R '+st.rating:''].filter(Boolean);
   $('#o_sum').textContent=bits.join(' · ');
