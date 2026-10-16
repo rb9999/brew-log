@@ -11,6 +11,9 @@ services:
     command: ["node", "/app/server.js"]
     environment:
       - PORT=80
+      # Optional: have "Update app" follow your own fork instead of the original repo.
+      # - BREWLOG_REPO=your-github-name/brew-log
+      # - BREWLOG_BRANCH=main
     ports:
       - "8085:80"
     volumes:

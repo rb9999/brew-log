@@ -29,7 +29,8 @@ function send(res, code, body, type) {
   res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));
 }
 
-const REPO = 'rb9999/brew-log', BRANCH = 'main';
+// Where "Update app" downloads from. Defaults to the original repo; set BREWLOG_REPO (owner/name) to follow your own fork.
+const REPO = process.env.BREWLOG_REPO || 'rb9999/brew-log', BRANCH = process.env.BREWLOG_BRANCH || 'main';
 async function getFile(name) {
   const base = process.env.UPDATE_BASE; // for testing only
   if (base) { const r = await fetch(base + '/' + name); if (!r.ok) throw new Error(name + ': HTTP ' + r.status); return await r.text(); }
