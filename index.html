@@ -256,7 +256,9 @@ fieldset.sec .btn.small{background:var(--sfield);border-color:transparent}
 .savebar .btn.primary{background:var(--cta);border-color:var(--cta);color:var(--cta-ink);min-height:48px;padding:0 26px;font-weight:700}
 .addbox{border:2px dashed var(--line);border-radius:20px;padding:16px}
 fieldset.sec .addbox{border-color:color-mix(in srgb,var(--d) 35%,transparent)}
-.rating input[type=range]{accent-color:var(--d)}
+.rate-lbl{font-size:18px!important;font-weight:700!important}
+.rate-in{width:140px!important;align-self:flex-start;min-height:64px!important;font-size:34px!important;font-weight:600;text-align:center;letter-spacing:.02em}
+.rate-in::placeholder{font-size:24px;font-weight:500}
 .card{border:0;border-radius:18px;box-shadow:0 8px 24px -14px rgba(34,34,59,.5)}
 .cardwrap summary,.recent h2,.ih{font-size:13px;letter-spacing:0;text-transform:none;font-weight:700;color:var(--ink)}
 .recent h2,.ih{font-size:18px;font-weight:800}
@@ -409,16 +411,13 @@ a{color:var(--accent);text-underline-offset:2px}
           </div>
           <span class="hint" id="o_retained"></span>
           <div class="field">
-            <label for="f_rating">Rating, 1.0 to 10.0</label>
-            <div class="rating">
-              <input type="range" id="rateRange" min="1" max="10" step="0.1" aria-label="Rating slider">
-              <input type="text" inputmode="decimal" class="num" id="f_rating" placeholder="N/A">
-            </div>
-          </div>
-          <div class="field">
             <span class="lbl" id="lbl_taste">Taste tags<span class="new-tag">new</span></span>
             <div class="chips" id="taste" role="group" aria-labelledby="lbl_taste"></div>
             <span class="hint">Tap to tag the cup. These make searching and trends much easier than free text.</span>
+          </div>
+          <div class="field rate-field">
+            <label for="f_rating" class="rate-lbl">Rating, 1.0 to 10.0</label>
+            <input type="text" inputmode="decimal" class="num rate-in" id="f_rating" placeholder="N/A" aria-label="Rating from 1.0 to 10.0">
           </div>
           <div class="field">
             <label for="f_notes">Notes</label>
@@ -614,7 +613,7 @@ function renderGrinders(){persist();var s=$('#f_grinder');
   if(!grinders.some(function(g){return g.code===st.grinder}))st.grinder=grinders[0].code;s.value=st.grinder}
 
 function syncInputs(){renderFilters();keys.forEach(function(k){var el=$('#f_'+k);if(el)el.value=st[k]||''});
-  $('#rateRange').value=num(st.rating)||5;renderCoffees();renderGrinders();renderChips();renderPours();renderScheduleSel();update()}
+  renderCoffees();renderGrinders();renderChips();renderPours();renderScheduleSel();update()}
 
 
 /* filter papers */
@@ -659,10 +658,9 @@ $('#pours').addEventListener('click',function(e){var b=e.target.closest('[data-r
 $('#addPour').addEventListener('click',function(){st.schedule='';renderScheduleSel();st.pours.push({t:'',up:''});renderPours();update();var el=$('#pt'+(st.pours.length-1));if(el)el.focus()});
 
 keys.forEach(function(k){var el=$('#f_'+k);if(!el)return;
-  el.addEventListener('input',function(){st[k]=el.value;if(st.schedule&&/^(coffee|water)[TA]$/.test(k))applySchedule(false);if(k==='rating'){var n=num(el.value);if(n!=null)$('#rateRange').value=Math.min(10,Math.max(1,n))}update()});
+  el.addEventListener('input',function(){st[k]=el.value;if(st.schedule&&/^(coffee|water)[TA]$/.test(k))applySchedule(false);update()});
   if(k==='dd'){el.addEventListener('change',function(){var t=parseT(el.value);if(t!=null){el.value=fmtT(t);st.dd=el.value;update()}})}
   if(k==='rating'){el.addEventListener('change',function(){var n=num(el.value);if(n!=null){n=Math.min(10,Math.max(1,n));el.value=n.toFixed(1);st.rating=el.value;update()}})}});
-$('#rateRange').addEventListener('input',function(e){st.rating=Number(e.target.value).toFixed(1);$('#f_rating').value=st.rating;update()});
 Array.prototype.forEach.call(document.querySelectorAll('[data-step]'),function(b){b.addEventListener('click',function(){
   var id=b.dataset.for,step=+b.dataset.step,el=$('#'+id),cur=num(el.value);if(cur==null)cur=(id==='f_temp'?200:5);
   var v=cur+step;el.value=step%1===0?String(Math.round(v)):v.toFixed(1);st[id.slice(2)]=el.value;update()})});
@@ -692,7 +690,7 @@ function updateBanner(){var bar=$('#stateBar');if(!bar)return;
     var last=history[0];if(last){btn.hidden=false;btn.textContent='Copy last brew';btn.onclick=function(){startFrom(last)}}else btn.hidden=true}
   else if(startedFrom){bar.style.borderColor='var(--viz,#888)';msg.innerHTML='<strong>'+esc(startedFrom)+'</strong>';btn.hidden=false;btn.textContent='Start over';btn.onclick=function(){st=blank();startedFrom='';syncInputs();toast('Form cleared.')}}
   else{bar.style.borderColor='var(--warn,#b8860b)';msg.innerHTML='<strong>Draft in progress</strong> <span class="hint">'+(st.coffee?esc(coffeeLabel(st.coffee)):'no coffee chosen yet')+'. Not saved yet.</span>';btn.hidden=false;btn.textContent='Start a new brew';btn.onclick=function(){st=blank();startedFrom='';syncInputs();toast('Form cleared.')}}}
-function update(){persist();updateBanner();$('#rateRange').classList.toggle('na',num(st.rating)==null);
+function update(){persist();updateBanner();
   var wa=num(st.waterA),wt=num(st.waterT),ca=num(st.coffeeA),ct=num(st.coffeeT);
   var w=wa!=null?wa:wt,c=ca!=null?ca:ct;
   $('#o_ratio').textContent=(w&&c)?'1 : '+r1(w/c):'–';
