@@ -620,7 +620,7 @@ function update(){persist();updateBanner();$('#rateRange').classList.toggle('na'
   var w=wa!=null?wa:wt,c=ca!=null?ca:ct;
   $('#o_ratio').textContent=(w&&c)?'1 : '+r1(w/c):'–';
   $('#o_ratioNote').textContent=(w&&c)?'using '+(wa!=null||ca!=null?'actual':'target')+' weights':'';
-  var y=num(st.yield);var rt=retention(st);$('#o_retained').textContent=rt?r1(rt.rec)+'% recovered · '+r1(rt.pct)+'% retained ('+r1(rt.g)+' g'+(rt.perG!=null?', '+rt.perG.toFixed(1)+' g per g of coffee':'')+')':((y!=null&&w)?r1(w-y)+' g stayed in the grounds':'');
+  var y=num(st.yield);var rt=retention(st);$('#o_retained').textContent=rt?r1(rt.rec)+'% recovered · '+r1(rt.pct)+'% retained ('+r1(rt.g)+' g'+(rt.perG!=null?', '+rt.perG.toFixed(1)+' g per g of coffee':'')+')':((y!=null&&w)?r1(w-y)+' g stayed in the grounds':'Retention: enter the yield (water out) and I will show % recovered and % retained.');
   // pours
   var prev=0,last=null;
   st.pours.forEach(function(p,i){var u=num(p.up),d=$('#pd'+i);if(!d)return;if(u!=null){d.textContent='+'+r1(u-prev);prev=u;last=u}else d.textContent=''});
