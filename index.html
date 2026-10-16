@@ -281,6 +281,23 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
 
         <fieldset class="sec">
           <legend>Recipe</legend>
+          <div class="row">
+            <div class="field">
+              <span class="lbl">Grind size</span>
+              <div class="pair" style="grid-template-columns:84px 110px;max-width:100%">
+                <select id="f_grinder" class="num" aria-label="Grinder"></select>
+                <input type="text" inputmode="decimal" class="num" id="f_grind" aria-label="Grind setting" placeholder="6.5">
+              </div>
+              <span class="hint" id="o_gHint"></span>
+              <div class="addbox" id="addGrinder" hidden>
+                <div class="row">
+                  <div class="field"><label for="ag_code" class="hint">Code</label><input type="text" id="ag_code" placeholder="GT" maxlength="6"></div>
+                  <div class="field"><label for="ag_name" class="hint">Grinder name (optional)</label><input type="text" id="ag_name" placeholder="Turin H40 V2"></div>
+                </div>
+                <div class="acts"><button type="button" class="btn primary small" id="ag_add">Add grinder</button><button type="button" class="btn ghost small" id="ag_cancel">Cancel</button></div>
+              </div>
+            </div>
+          </div>
           <div class="row c3">
             <div class="field">
               <label for="f_waterT" class="lbl">Water</label>
@@ -299,23 +316,6 @@ footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bl
             </div>
           </div>
           <div class="ratio" aria-live="polite"><span>Ratio <b id="o_ratio">–</b></span><span id="o_ratioNote"></span></div>
-          <div class="row">
-            <div class="field">
-              <span class="lbl">Grind size</span>
-              <div class="pair" style="grid-template-columns:84px 110px;max-width:100%">
-                <select id="f_grinder" class="num" aria-label="Grinder"></select>
-                <input type="text" inputmode="decimal" class="num" id="f_grind" aria-label="Grind setting" placeholder="6.5">
-              </div>
-              <span class="hint" id="o_gHint"></span>
-              <div class="addbox" id="addGrinder" hidden>
-                <div class="row">
-                  <div class="field"><label for="ag_code" class="hint">Code</label><input type="text" id="ag_code" placeholder="GT" maxlength="6"></div>
-                  <div class="field"><label for="ag_name" class="hint">Grinder name (optional)</label><input type="text" id="ag_name" placeholder="Turin H40 V2"></div>
-                </div>
-                <div class="acts"><button type="button" class="btn primary small" id="ag_add">Add grinder</button><button type="button" class="btn ghost small" id="ag_cancel">Cancel</button></div>
-              </div>
-            </div>
-          </div>
         </fieldset>
 
         <fieldset class="sec">
