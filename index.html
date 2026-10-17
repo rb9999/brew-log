@@ -458,7 +458,7 @@ a{color:var(--accent);text-underline-offset:2px}
           <div class="row">
             <div class="field"><label for="b_coffee">Coffee</label><select id="b_coffee"></select></div>
             <div class="field"><label for="b_method">Method</label><select id="b_method"></select></div>
-            <div class="field"><label for="b_min">Rating</label><select id="b_min"><option value="0">Any rating</option><option value="6">6.0 and up</option><option value="7">7.0 and up</option><option value="8">8.0 and up</option><option value="9">9.0 and up</option></select></div>
+            <div class="field"><label for="b_min">Rating</label><select id="b_min"><option value="0">Any rating</option><option value="6">6.0 and up</option><option value="6.5">6.5 and up</option><option value="7">7.0 and up</option><option value="8">8.0 and up</option><option value="9">9.0 and up</option></select></div>
             <div class="field"><label for="b_sort">Sort by</label><select id="b_sort"><option value="new">Newest</option><option value="top">Highest rated</option><option value="coffee">Coffee name</option></select></div>
           </div>
           <div class="field"><span class="lbl" id="lbl_btags">Taste</span><div class="chips" id="b_tags" role="group" aria-labelledby="lbl_btags"></div></div>
@@ -582,8 +582,9 @@ function r1(n){return(Math.round(n*10)/10).toString()}
 
 var METHODS=['V60','Kalita Wave','Aeropress'];
 var WATERS=['Tap','Light','Medium','Dark'];
-var TASTE=['Balanced','Sweet','Fruity','Roasty','Bright','Juicy','Clean','Floral','Chocolatey','Nutty','Caramel','Citrus','Berry','Smooth','Full body','Thin','Bitter','Sour','Weak','Muted','Astringent','Harsh','Dry','Salty','Flat','Grassy','Smoky'];
-var OVER=['Bitter','Astringent','Harsh','Dry'],UNDER=['Sour','Muted','Grassy','Flat'],LIGHT=['Weak','Thin'];
+var TASTE=['Balanced','Sweet','Fruity','Roasty','Bright','Good acidity','Juicy','Clean','Floral','Chocolatey','Nutty','Caramel','Citrus','Berry','Smooth','Full body','Thin','Bitter','Sour','Sharp acidity','Weak','Muted','Astringent','Harsh','Dry','Salty','Flat','Grassy','Smoky'];
+var GOOD=6.5;
+var OVER=['Bitter','Astringent','Harsh','Dry'],UNDER=['Sour','Sharp acidity','Muted','Grassy','Flat'],LIGHT=['Weak','Thin'];
 var TECH=['Melodrip','Swirl','Vigorous pour','Gentle pour'];
 
 function blank(){return{coffee:'',waterName:'',waterLevel:'',method:'',waterT:'240',waterA:'',coffeeT:'',coffeeA:'',grinder:'GT',grind:'',temp:'',
@@ -1014,7 +1015,7 @@ function ideaFor(c){
   else if(pick(OVER).length){dg=.3;o.why.push('The last cup was '+pick(OVER).join(' and ').toLowerCase()+', which points to over-extraction. A coarser grind takes less from the grounds.')}
   else if(pick(UNDER).length){dg=-.3;o.why.push('The last cup was '+pick(UNDER).join(' and ').toLowerCase()+', which points to under-extraction. A finer grind takes more from the grounds.')}
   else if(pick(LIGHT).length){dd=1;o.why.push('The last cup was '+pick(LIGHT).join(' and ').toLowerCase()+'. More coffee in the same 240 g of water adds strength.')}
-  else if(r!=null&&r>=7){o.why.push('Rated '+r.toFixed(1)+'. Repeat it unchanged once to see if it holds.')}
+  else if(r!=null&&r>=GOOD){o.why.push('Rated '+r.toFixed(1)+'. Repeat it unchanged once to see if it holds.')}
   else if(best&&best!==L&&num(best.rating)>(r==null?0:r)){dg=num(best.grind)-g;dt=num(best.temp)-t;dd=num(best.coffeeT)-d;
     o.why.push('Your best brew of this coffee ('+num(best.rating).toFixed(1)+', '+dateLabel(best.date)+') used '+best.grinder+' '+best.grind+' at '+best.temp+'°F. Return to it.')}
   else{dt=3;o.why.push('Balanced but rated '+(r!=null?r.toFixed(1):'low')+'. Try 3°F hotter and change nothing else.')}
@@ -1053,12 +1054,12 @@ function renderIdeas(){
     li.querySelector('[data-a=go]').addEventListener('click',function(){startIdea(o)});
     li.querySelector('[data-a=skip]').addEventListener('click',function(){skipped[o.coffee]=true;renderIdeas();toast('Skipped the idea for '+o.coffee+'.',function(){delete skipped[o.coffee];renderIdeas()})});
     ul.appendChild(li)});
-  var top=history.filter(function(h){var r=num(h.rating);return r!=null&&r>=7}),bx=$('#i_best');
-  if(top.length<2){bx.innerHTML='<h3>Not enough yet</h3><p class="tsub">Rate two or more brews 7.0 or higher and this card will show what they have in common.</p>';return}
+  var top=history.filter(function(h){var r=num(h.rating);return r!=null&&r>=GOOD}),bx=$('#i_best');
+  if(top.length<2){bx.innerHTML='<h3>Not enough yet</h3><p class="tsub">Rate two or more brews 6.5 or higher and this card will show what they have in common.</p>';return}
   function rng(a,f){var mn=Math.min.apply(null,a),mx=Math.max.apply(null,a);return mn===mx?f(mn):f(mn)+'–'+f(mx)}
   var ts=top.map(function(h){return num(h.temp)}).filter(function(x){return x!=null}),rt=top.map(function(h){var w=num(h.waterA)!=null?num(h.waterA):num(h.waterT),c=num(h.coffeeA)!=null?num(h.coffeeA):num(h.coffeeT);return w&&c?w/c:null}).filter(function(x){return x!=null}),
       dds=top.map(function(h){return parseT(h.dd)}).filter(function(x){return x!=null}),ms=uniq(top.map(function(h){return h.method}));
-  bx.innerHTML='<h3>Brews rated 7.0 and up</h3><p class="tsub">Across all coffees, '+top.length+' brews.</p><div class="bstats s4" style="border-bottom:0;padding-bottom:0">'+
+  bx.innerHTML='<h3>Brews rated 6.5 and up</h3><p class="tsub">Across all coffees, '+top.length+' brews.</p><div class="bstats s4" style="border-bottom:0;padding-bottom:0">'+
     statCell('Water temp',ts.length?rng(ts,function(v){return v+'°F'}):'')+statCell('Ratio',rt.length?rng(rt,function(v){return'1:'+Math.round(v)}):'')+statCell('Drawdown',dds.length?rng(dds,fmtMS):'')+statCell('Methods',ms.join(', '))+'</div>'}
 /* Brews: search, filter, sort, expand */
 var bf={q:'',coffee:'',method:'',min:0,sort:'new',tags:[]},bopen={};
