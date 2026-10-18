@@ -804,7 +804,12 @@ if(window.matchMedia&&matchMedia('(max-width:979px)').matches){$('#cardDetails')
 
 $('#form').addEventListener('submit',function(e){e.preventDefault();
   if(!st.coffee.trim()){$('#f_coffee').scrollIntoView({block:'center'});toast('Pick a coffee first.');return}
-  if(num(st.rating)==null&&!confirm('No rating yet. Save this brew without a rating?\n\nOK saves it as N/A. Cancel lets you add a rating.')){$('#f_rating').focus();$('#f_rating').scrollIntoView({block:'center'});return}
+  var miss=[];
+  if(num(st.grind)==null)miss.push({n:'grind size',id:'f_grind'});
+  if(num(st.coffeeA)==null&&num(st.coffeeT)==null)miss.push({n:'coffee weight',id:'f_coffeeT'});
+  if(num(st.waterA)==null&&num(st.waterT)==null)miss.push({n:'water weight',id:'f_waterT'});
+  if(num(st.rating)==null)miss.push({n:'rating',id:'f_rating'});
+  if(miss.length&&!confirm('Missing: '+miss.map(function(m){return m.n}).join(', ')+'.\n\nOK saves the brew anyway (the rating is saved as N/A). Cancel lets you fill them in.')){var fe=$('#'+miss[0].id);fe.scrollIntoView({block:'center'});fe.focus();return}
   if(editId!=null){var ix=-1;history.forEach(function(h,i){if(h.id===editId)ix=i});
     if(ix>-1){var u=JSON.parse(JSON.stringify(st));u.id=editId;u.date=history[ix].date;u.level=(coffeeRec(u.coffee)||{}).level||'';if(history[ix].ex)u.ex=true;history[ix]=u}
     endEdit();syncInputs();renderHist();renderBrews();showTab('brews');toast('Brew updated.');return}
