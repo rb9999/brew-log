@@ -484,6 +484,8 @@ a{color:var(--accent);text-underline-offset:2px}
         <div class="field"><label for="ac_comment" class="hint">Comments (optional)</label><textarea id="ac_comment" rows="3" placeholder="Where you bought it, price, how it brews, what to try next…"></textarea></div>
         <div class="acts"><button type="button" class="btn primary small" id="ac_add">Add to list</button><button type="button" class="btn ghost small" id="ac_cancel">Cancel</button></div>
       </div>
+      <label class="sr" for="c_q">Filter coffees</label>
+      <input type="text" id="c_q" class="search" placeholder="Filter coffees by name, roaster or notes" autocomplete="off" style="margin-top:8px">
       <ul class="blist" id="c_list" style="margin-top:8px"></ul>
       <details id="c_archWrap" hidden style="margin-top:14px"><summary id="c_archSum" style="cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--muted)">Archived</summary><ul class="blist" id="c_arch"></ul></details>
     </div>
@@ -762,10 +764,13 @@ function restoreCoffee(i){var c=coffees[i];c.archived=false;c.bags=(c.bags||1)+1
 function statCell(l,v){return'<span class="st"><span class="sl">'+l+'</span><span class="sv">'+esc(v||'–')+'</span></span>'}
 function renderCoffeeCards(){persist();var ul=$('#c_list'),ua=$('#c_arch');ul.innerHTML='';ua.innerHTML='';
   var na=coffees.filter(function(c){return c.archived}).length,nact=coffees.length-na;
+  var cq=($('#c_q').value||'').trim().toLowerCase(),shown=0,shownA=0;
+  function cmatch(c){return!cq||[c.name,c.roaster,c.flavor,c.comment,c.level].join(' ').toLowerCase().indexOf(cq)>-1}
   $('#c_count').textContent=nact+(nact===1?' coffee':' coffees')+' on your list';
   $('#c_archWrap').hidden=!na;$('#c_archSum').textContent='Archived ('+na+')';
   if(!nact){ul.innerHTML='<li class="empty">No coffees on your list. Add the bag you are brewing and it will appear in the Log a brew list.</li>'}
   coffees.forEach(function(c,i){
+    if(!cmatch(c))return;
     var arch=!!c.archived,bs=history.filter(function(h){return h.coffee===c.name}),rs=bs.map(function(h){return num(h.rating)}).filter(function(x){return x!=null});
     var best=rs.length?Math.max.apply(null,rs).toFixed(1):'',dates=bs.map(function(h){return h.date||''}).sort(),last=dates.length?dateLabel(dates[dates.length-1]):'';
     var meta=[c.roaster,(c.bags>1?'Bag '+c.bags:''),arch?'':daysOff(c)].filter(Boolean).map(esc).join(' · ');
@@ -782,8 +787,11 @@ function renderCoffeeCards(){persist();var ul=$('#c_list'),ua=$('#c_arch');ul.in
     q('edit').addEventListener('click',function(){openCoffeeForm(i)});
     if(q('rm'))q('rm').addEventListener('click',function(){removeCoffee(i)});
     q('del').addEventListener('click',function(){deleteCoffee(i)});
-    (arch?ua:ul).appendChild(li)})}
+    if(arch)shownA++;else shown++;
+    (arch?ua:ul).appendChild(li)});
+  if(cq){$('#c_count').textContent=shown+' of '+nact+(nact===1?' coffee':' coffees')+' match';if(nact&&!shown)ul.innerHTML='<li class="empty">No coffees match “'+esc($('#c_q').value.trim())+'”.</li>';if(shownA&&na)$('#c_archWrap').open=true;$('#c_archSum').textContent='Archived ('+shownA+(shownA!==na?' of '+na:'')+')'}}
 /* grinder list */
+$('#c_q').addEventListener('input',renderCoffeeCards);
 $('#f_grinder').addEventListener('change',function(e){if(e.target.value==='__add'){e.target.value=st.grinder;$('#addGrinder').hidden=false;$('#ag_code').focus()}else{st.grinder=e.target.value;update()}});
 $('#ag_cancel').addEventListener('click',function(){$('#addGrinder').hidden=true});
 $('#ag_add').addEventListener('click',function(){var c=$('#ag_code').value.trim().toUpperCase();if(!c){$('#ag_code').focus();return}
