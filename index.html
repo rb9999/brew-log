@@ -898,11 +898,21 @@ function startFrom(h){if(editId!=null)endEdit();var b=blank();
 /* notes */
 function linkify(t){return esc(t).replace(/(https?:\/\/[^\s<]+[^\s<.,;:!?)"'\]])/g,function(u){return'<a href="'+u+'" target="_blank" rel="noopener noreferrer">'+u+'</a>'})}
 function noteStamp(ms){var d=new Date(ms);return isNaN(d)?'':d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' · '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}
+var noteEdit=null;
 function renderNotes(){var ul=$('#n_list');ul.innerHTML='';$('#n_count').textContent=notes.length+(notes.length===1?' note':' notes');
   if(!notes.length){ul.innerHTML='<li class="empty">No notes yet. Type one above.</li>';return}
   notes.slice().sort(function(a,b){return b.at-a.at}).forEach(function(n){var li=document.createElement('li');li.className='bi ci';
-    li.innerHTML='<div class="b2" style="display:block;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--ink)">'+linkify(n.text)+'</div><div class="b1"><span class="hint">'+esc(noteStamp(n.at))+'</span><button type="button" class="btn small ghost" data-a="rm">Delete</button></div>';
-    li.querySelector('[data-a=rm]').addEventListener('click',function(){var i=notes.indexOf(n);if(i<0)return;notes.splice(i,1);persist();renderNotes();
+    if(noteEdit===n.id){
+      li.innerHTML='<label class="sr" for="n_edit">Edit note</label><textarea id="n_edit" rows="4"></textarea><div class="acts"><button type="button" class="btn primary small" data-a="save">Save changes</button><button type="button" class="btn ghost small" data-a="cancel">Cancel</button></div>';
+      var ta=li.querySelector('textarea');ta.value=n.text;
+      li.querySelector('[data-a=save]').addEventListener('click',function(){var t=ta.value.trim();if(!t){toast('A note cannot be empty. Delete it instead.');return}
+        n.text=t;n.edited=Date.now();noteEdit=null;persist();renderNotes();toast('Note updated.')});
+      li.querySelector('[data-a=cancel]').addEventListener('click',function(){noteEdit=null;renderNotes()});
+      ta.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();li.querySelector('[data-a=save]').click()}});
+      ul.appendChild(li);return}
+    li.innerHTML='<div class="b2" style="display:block;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--ink)">'+linkify(n.text)+'</div><div class="b1"><span class="hint">'+esc(noteStamp(n.at))+(n.edited?' · edited':'')+'</span><span style="display:flex;gap:4px"><button type="button" class="btn small ghost" data-a="edit">Edit</button><button type="button" class="btn small ghost" data-a="rm">Delete</button></span></div>';
+    li.querySelector('[data-a=edit]').addEventListener('click',function(){noteEdit=n.id;renderNotes();var t=$('#n_edit');if(t){t.focus();t.setSelectionRange(t.value.length,t.value.length)}});
+    li.querySelector('[data-a=rm]').addEventListener('click',function(){var i=notes.indexOf(n);if(i<0)return;notes.splice(i,1);if(noteEdit===n.id)noteEdit=null;persist();renderNotes();
       toast('Note deleted.',function(){notes.push(n);persist();renderNotes()})});
     ul.appendChild(li)})}
 $('#n_add').addEventListener('click',function(){var t=$('#n_text').value.trim();if(!t){toast('Type a note first.');return}
