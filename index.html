@@ -452,6 +452,11 @@ a{color:var(--accent);text-underline-offset:2px}
     <div class="brews">
       <label class="sr" for="b_q">Search brews</label>
       <input type="text" id="b_q" placeholder="Search coffee, notes, technique, grind…" autocomplete="off">
+      <div class="chips" id="b_scope" role="group" aria-label="Which coffees to show" style="margin-top:10px">
+        <button type="button" class="chip" data-s="active">Active coffees</button>
+        <button type="button" class="chip" data-s="done">Finished coffees</button>
+        <button type="button" class="chip" data-s="all">All</button>
+      </div>
       <details class="filters" id="b_filters" open>
         <summary>Filters <span id="b_fcount"></span></summary>
         <div class="inner">
@@ -783,7 +788,7 @@ function renderCoffeeCards(){persist();var ul=$('#c_list'),ua=$('#c_arch');ul.in
     if(q('brew'))q('brew').addEventListener('click',function(){
       if(bs.length)startFrom(bs[0]);else{if(editId!=null)endEdit();st=blank();st.coffee=c.name;startedFrom='New brew for '+coffeeLabel(c.name)+'.';syncInputs();showTab('log');toast('New brew for '+c.name+'.');window.scrollTo({top:0})}});
     if(q('back'))q('back').addEventListener('click',function(){restoreCoffee(i)});
-    q('view').addEventListener('click',function(){bf.q='';bf.coffee=c.name;bf.method='';bf.min=0;bf.tags=[];showTab('brews');window.scrollTo({top:0})});
+    q('view').addEventListener('click',function(){bf.q='';bf.coffee=c.name;bf.method='';bf.min=0;bf.tags=[];bf.scope='all';showTab('brews');window.scrollTo({top:0})});
     q('edit').addEventListener('click',function(){openCoffeeForm(i)});
     if(q('rm'))q('rm').addEventListener('click',function(){removeCoffee(i)});
     q('del').addEventListener('click',function(){deleteCoffee(i)});
@@ -1085,7 +1090,9 @@ function renderIdeas(){
   bx.innerHTML='<h3>Brews rated 6.5 and up</h3><p class="tsub">Across all coffees, '+top.length+' brews.</p><div class="bstats s4" style="border-bottom:0;padding-bottom:0">'+
     statCell('Water temp',ts.length?rng(ts,function(v){return v+'°F'}):'')+statCell('Ratio',rt.length?rng(rt,function(v){return'1:'+Math.round(v)}):'')+statCell('Drawdown',dds.length?rng(dds,fmtMS):'')+statCell('Methods',ms.join(', '))+'</div>'}
 /* Brews: search, filter, sort, expand */
-var bf={q:'',coffee:'',method:'',min:0,sort:'new',tags:[]},bopen={};
+var bf={q:'',coffee:'',method:'',min:0,sort:'new',tags:[],scope:'active'},bopen={};
+function coffeeActive(n){var c=coffeeRec(n);return!!c&&!c.archived}
+function inScope(h){return bf.scope==='all'||(bf.scope==='active')===coffeeActive(h.coffee)}
 function uniq(a){var o={},r=[];a.forEach(function(x){if(x&&!o[x]){o[x]=1;r.push(x)}});return r}
 function dateLabel(iso){if(!iso)return'';var d=new Date(iso+'T12:00:00');return isNaN(d)?'':d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}
 function retention(h){var w=num(h.waterA)!=null?num(h.waterA):num(h.waterT),c=num(h.coffeeA)!=null?num(h.coffeeA):num(h.coffeeT),y=num(h.yield);
@@ -1096,6 +1103,7 @@ function fillSel(id,vals,cur,first){var s=$(id);s.innerHTML='<option value="">'+
 function activeCount(){return(bf.q?1:0)+(bf.coffee?1:0)+(bf.method?1:0)+(bf.min?1:0)+bf.tags.length}
 function brewsFiltered(){var words=bf.q.toLowerCase().split(/\s+/).filter(Boolean);
   var rows=history.map(function(h,i){return{h:h,i:i}}).filter(function(x){var h=x.h;
+    if(!inScope(h))return false;
     if(bf.coffee&&h.coffee!==bf.coffee)return false;if(bf.method&&h.method!==bf.method)return false;
     if(bf.min&&(num(h.rating)==null||num(h.rating)<bf.min))return false;
     if(bf.tags.length&&!bf.tags.every(function(t){return(h.taste||[]).indexOf(t)>-1}))return false;
@@ -1107,11 +1115,14 @@ function brewsFiltered(){var words=bf.q.toLowerCase().split(/\s+/).filter(Boolea
     if((a.h.date||'')!==(b.h.date||''))return(a.h.date||'')<(b.h.date||'')?1:-1;return a.i-b.i});
   return rows.map(function(x){return x.h})}
 function renderBrewChips(){chipGroup('#b_tags',TASTE,function(t){return bf.tags.indexOf(t)>-1},function(t){toggle(bf.tags,t);renderBrewChips();renderBrewList()})}
-function renderBrews(){fillSel('#b_coffee',uniq(history.map(function(h){return h.coffee})).sort(),bf.coffee,'All coffees');
-  fillSel('#b_method',uniq(history.map(function(h){return h.method})).sort(),bf.method,'All methods');
+function renderBrews(){var sh=history.filter(inScope);if(bf.coffee&&!sh.some(function(h){return h.coffee===bf.coffee}))bf.coffee='';
+  fillSel('#b_coffee',uniq(sh.map(function(h){return h.coffee})).sort(),bf.coffee,'All coffees');
+  fillSel('#b_method',uniq(sh.map(function(h){return h.method})).sort(),bf.method,'All methods');
+  Array.prototype.forEach.call(document.querySelectorAll('#b_scope .chip'),function(b){b.setAttribute('aria-pressed',b.dataset.s===bf.scope?'true':'false')});
   $('#b_min').value=String(bf.min);$('#b_sort').value=bf.sort;$('#b_q').value=bf.q;renderBrewChips();renderBrewList()}
 function renderBrewList(){var list=brewsFiltered(),n=activeCount();
-  $('#b_count').textContent=list.length+' of '+history.length+' brews';$('#b_clear').hidden=!n;$('#b_fcount').textContent=(bf.q?n-1:n)?'('+(bf.q?n-1:n)+')':'';
+  var hid=history.filter(function(h){return!inScope(h)}).length;
+  $('#b_count').textContent=list.length+' of '+history.filter(inScope).length+' brews'+(hid?' · '+hid+(bf.scope==='active'?' from finished coffees hidden':' from active coffees hidden'):'');$('#b_clear').hidden=!n;$('#b_fcount').textContent=(bf.q?n-1:n)?'('+(bf.q?n-1:n)+')':'';
   var ul=$('#b_list');ul.innerHTML='';
   if(!list.length){ul.innerHTML='<li class="empty">'+(history.length?'No brews match. Try fewer filters.':'No brews yet. Log your first one on the Log a brew tab.')+'</li>';return}
   list.forEach(function(h){var open=!!bopen[h.id],r=num(h.rating),li=document.createElement('li');li.className='bi';
@@ -1132,6 +1143,7 @@ function renderBrewList(){var list=brewsFiltered(),n=activeCount();
       li.appendChild(body)}
     ul.appendChild(li)})}
 $('#b_q').addEventListener('input',function(e){bf.q=e.target.value;renderBrewList()});
+Array.prototype.forEach.call(document.querySelectorAll('#b_scope .chip'),function(b){b.addEventListener('click',function(){bf.scope=b.dataset.s;renderBrews()})});
 $('#b_coffee').addEventListener('change',function(e){bf.coffee=e.target.value;renderBrewList()});
 $('#b_method').addEventListener('change',function(e){bf.method=e.target.value;renderBrewList()});
 $('#b_min').addEventListener('change',function(e){bf.min=+e.target.value;renderBrewList()});
