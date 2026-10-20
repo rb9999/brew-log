@@ -851,7 +851,9 @@ function applySchedule(msg){var sc=schedByName(st.schedule);if(!sc)return;var W=
 $('#f_schedule').addEventListener('change',function(e){st.schedule=e.target.value;if(st.schedule)applySchedule(true);else update()});
 function schedSummary(sc){return sc.steps.map(function(p){var m=p.mode,v=p.v;return m==='x'?v+'x':m==='pct'?v+'%':m==='g'?v+' g':'rest'}).join(' · ')}
 var STARTERS=[{name:'4:6 method',about:'Tetsu Kasuya, V60. Five equal pours, 45 seconds apart. The first two (40% of the water) steer sweetness and acidity, the last three (60%) set the strength.',
-  steps:[0,45,90,135,180].map(function(t){return{t:Math.floor(t/60)+':'+('0'+t%60).slice(-2),mode:'pct',v:'20'}})}];
+  steps:[0,45,90,135,180].map(function(t){return{t:Math.floor(t/60)+':'+('0'+t%60).slice(-2),mode:'pct',v:'20'}})},
+  {name:'Kalita Wave pulse pours',about:'Kalita Wave. Bloom with 2x the coffee weight, then three pulse pours about 40 seconds apart. The last pour takes whatever water is left. The flat bed is forgiving, so pour height and speed matter less. Aim to finish draining around 3:00 to 3:30.',
+  steps:[{t:'0:00',mode:'x',v:'2'},{t:'0:40',mode:'pct',v:'35'},{t:'1:20',mode:'pct',v:'30'},{t:'2:00',mode:'rest',v:''}]}];
 function renderStarters(){var ul=$('#p_starters');if(!ul)return;ul.innerHTML='';
   var left=STARTERS.filter(function(sc){return!schedByName(sc.name)});$('#p_startHead').hidden=!left.length;
   left.forEach(function(sc){var have=false,li=document.createElement('li');li.className='bi ci';
