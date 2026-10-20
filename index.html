@@ -511,7 +511,7 @@ a{color:var(--accent);text-underline-offset:2px}
         <div class="acts"><button type="button" class="btn primary small" id="p_save">Save schedule</button><button type="button" class="btn ghost small" id="p_cancel">Cancel</button></div>
       </div>
       <ul class="blist" id="p_list" style="margin-top:8px"></ul>
-      <h2 class="ih">Starter schedules</h2>
+      <h2 class="ih" id="p_startHead">Starter schedules</h2>
       <ul class="blist" id="p_starters"></ul>
     </div>
   </section>
@@ -852,7 +852,8 @@ function schedSummary(sc){return sc.steps.map(function(p){var m=p.mode,v=p.v;ret
 var STARTERS=[{name:'4:6 method',about:'Tetsu Kasuya, V60. Five equal pours, 45 seconds apart. The first two (40% of the water) steer sweetness and acidity, the last three (60%) set the strength.',
   steps:[0,45,90,135,180].map(function(t){return{t:Math.floor(t/60)+':'+('0'+t%60).slice(-2),mode:'pct',v:'20'}})}];
 function renderStarters(){var ul=$('#p_starters');if(!ul)return;ul.innerHTML='';
-  STARTERS.forEach(function(sc){var have=schedByName(sc.name),li=document.createElement('li');li.className='bi ci';
+  var left=STARTERS.filter(function(sc){return!schedByName(sc.name)});$('#p_startHead').hidden=!left.length;
+  left.forEach(function(sc){var have=false,li=document.createElement('li');li.className='bi ci';
     li.innerHTML='<div class="b1"><strong>'+esc(sc.name)+'</strong><span class="rate">'+sc.steps.length+' pours</span></div><div class="b2" style="display:block">'+esc(sc.about)+'</div><div class="b2">'+esc(schedSummary(sc))+' <span class="hint">at '+esc(sc.steps.map(function(p){return p.t}).join(', '))+'</span></div>'+
       '<div class="acts"><button type="button" class="btn primary small" data-a="add"'+(have?' disabled':'')+'>'+(have?'Added':'Add to my schedules')+'</button></div>';
     li.querySelector('[data-a=add]').addEventListener('click',function(){if(schedByName(sc.name))return;schedules.push({name:sc.name,steps:JSON.parse(JSON.stringify(sc.steps))});renderScheduleSel();renderSchedules();toast('Added '+sc.name+'.')});
