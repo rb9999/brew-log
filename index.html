@@ -323,7 +323,7 @@ a{color:var(--accent);text-underline-offset:2px}
           <div class="field">
             <span class="lbl" id="lbl_method">Brew method</span>
             <div class="chips" id="methods" role="group" aria-labelledby="lbl_method"></div>
-            <div><button type="button" class="btn small ghost" id="methodRm" hidden></button></div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap"><button type="button" class="btn small ghost" id="methodRn" hidden></button><button type="button" class="btn small ghost" id="methodRm" hidden></button></div>
           </div>
           <div class="row">
             <div class="field">
@@ -656,11 +656,21 @@ function offerMethod(v){v=(v||'').trim();if(!v)return;
   else declinedMethod=v}
 $('#methodRm').addEventListener('click',function(){var n=st.method,i=methods.indexOf(n);if(i<0)return;methods.splice(i,1);st.method='';renderChips();update();
   toast('Removed '+n+' from your methods. Past brews keep it.',function(){if(methods.indexOf(n)<0)methods.splice(i,0,n);st.method=n;renderChips();update()})});
+$('#methodRn').addEventListener('click',function(){var old=st.method;if(!old)return;
+  var nn=prompt('Rename "'+old+'" to:\n\nThis changes the brew method button and every saved brew that used it.',old);if(nn===null)return;nn=nn.trim();
+  if(!nn||nn===old)return;
+  if(methods.some(function(m){return m!==old&&m.toLowerCase()===nn.toLowerCase()})){toast(nn+' is already one of your methods. Pick a different name.');return}
+  var i=methods.indexOf(old),n=0;if(i>-1)methods[i]=nn;
+  history.forEach(function(h){if(h.method===old){h.method=nn;n++}});
+  if(editDraft&&editDraft.method===old)editDraft.method=nn;
+  if(bf.method===old)bf.method=nn;
+  st.method=nn;declinedMethod='';renderChips();renderHist();if(!$('#panel-brews').hidden)renderBrews();update();
+  toast('Renamed '+old+' to '+nn+(n?' on '+n+(n===1?' brew.':' brews.'):'.'))});
 function renderChips(){
   var mb=chipGroup('#methods',methods,function(m){return st.method===m},function(m){st.method=(st.method===m?'':m);$('#f_methodOther').value='';renderChips();update()});
   var o=document.createElement('input');o.type='text';o.id='f_methodOther';o.className='inline-other';o.placeholder='Other method';o.setAttribute('aria-label','Other brew method');
   o.value=methods.indexOf(st.method)<0?st.method:'';o.addEventListener('input',function(){st.method=o.value;Array.prototype.forEach.call(mb.querySelectorAll('.chip'),function(c){c.setAttribute('aria-pressed','false')});update()});o.addEventListener('change',function(){offerMethod(o.value)});mb.appendChild(o);
-  var rm=$('#methodRm'),saved=methods.indexOf(st.method)>-1;rm.hidden=!saved;if(saved)rm.textContent='Remove '+st.method+' from my methods';
+  var rm=$('#methodRm'),rn=$('#methodRn'),saved=methods.indexOf(st.method)>-1;rm.hidden=!saved;if(saved)rm.textContent='Remove '+st.method+' from my methods';rn.hidden=!st.method;if(st.method)rn.textContent='Rename '+st.method;
   chipGroup('#waters',WATERS,function(w){return st.waterName===w},function(w){st.waterName=(st.waterName===w?'':w);renderChips();update()});
   chipGroup('#taste',TASTE,function(t){return st.taste.indexOf(t)>-1},function(t){toggle(st.taste,t);renderChips();update()});
   chipGroup('#tech',TECH,function(t){return st.tech.indexOf(t)>-1},function(t){toggle(st.tech,t);renderChips();update()})}
