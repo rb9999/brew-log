@@ -323,6 +323,7 @@ a{color:var(--accent);text-underline-offset:2px}
           <div class="field">
             <span class="lbl" id="lbl_method">Brew method</span>
             <div class="chips" id="methods" role="group" aria-labelledby="lbl_method"></div>
+            <div><button type="button" class="btn small ghost" id="methodRm" hidden></button></div>
           </div>
           <div class="row">
             <div class="field">
@@ -591,7 +592,7 @@ function fmtT(t){if(t==null)return'';var m=Math.floor(t/60),s=t%60;
 function cardT(t){if(t==null)return'';var m=Math.floor(t/60),s=t%60;return m===0?String(s):m+String(s).padStart(2,'0')}
 function r1(n){return(Math.round(n*10)/10).toString()}
 
-var METHODS=['V60','Kalita Wave','Aeropress'];
+var methods=['V60','Kalita Wave','Aeropress'],declinedMethod='';
 var WATERS=['Tap','Light','Medium','Dark'];
 var TASTE=['Balanced','Sweet','Fruity','Roasty','Bright','Good acidity','Juicy','Clean','Floral','Chocolatey','Nutty','Caramel','Citrus','Berry','Smooth','Full body','Thin','Bitter','Sour','Sharp acidity','Weak','Muted','Astringent','Harsh','Dry','Salty','Flat','Grassy','Smoky'];
 var GOOD=6.5;
@@ -647,10 +648,19 @@ $('#filterRm').addEventListener('click',function(){var n=st.filter,i=filters.ind
 function chipGroup(id,items,isOn,onClick,labelFn){var box=$(id);box.innerHTML='';
   items.forEach(function(it){var b=document.createElement('button');b.type='button';b.className='chip';b.textContent=labelFn?labelFn(it):it;
     b.setAttribute('aria-pressed',isOn(it)?'true':'false');b.addEventListener('click',function(){onClick(it)});box.appendChild(b)});return box}
+function offerMethod(v){v=(v||'').trim();if(!v)return;
+  var ex=methods.filter(function(m){return m.toLowerCase()===v.toLowerCase()})[0];
+  if(ex){st.method=ex;declinedMethod='';renderChips();update();return}
+  if(v===declinedMethod)return;
+  if(confirm('Add "'+v+'" to your saved brew methods?\n\nOK adds it to the list. Cancel uses it for this brew only.')){methods.push(v);st.method=v;declinedMethod='';renderChips();update();toast('Added '+v+' to your brew methods.')}
+  else declinedMethod=v}
+$('#methodRm').addEventListener('click',function(){var n=st.method,i=methods.indexOf(n);if(i<0)return;methods.splice(i,1);st.method='';renderChips();update();
+  toast('Removed '+n+' from your methods. Past brews keep it.',function(){if(methods.indexOf(n)<0)methods.splice(i,0,n);st.method=n;renderChips();update()})});
 function renderChips(){
-  var mb=chipGroup('#methods',METHODS,function(m){return st.method===m},function(m){st.method=(st.method===m?'':m);$('#f_methodOther').value='';renderChips();update()});
+  var mb=chipGroup('#methods',methods,function(m){return st.method===m},function(m){st.method=(st.method===m?'':m);$('#f_methodOther').value='';renderChips();update()});
   var o=document.createElement('input');o.type='text';o.id='f_methodOther';o.className='inline-other';o.placeholder='Other method';o.setAttribute('aria-label','Other brew method');
-  o.value=METHODS.indexOf(st.method)<0?st.method:'';o.addEventListener('input',function(){st.method=o.value;Array.prototype.forEach.call(mb.querySelectorAll('.chip'),function(c){c.setAttribute('aria-pressed','false')});update()});mb.appendChild(o);
+  o.value=methods.indexOf(st.method)<0?st.method:'';o.addEventListener('input',function(){st.method=o.value;Array.prototype.forEach.call(mb.querySelectorAll('.chip'),function(c){c.setAttribute('aria-pressed','false')});update()});o.addEventListener('change',function(){offerMethod(o.value)});mb.appendChild(o);
+  var rm=$('#methodRm'),saved=methods.indexOf(st.method)>-1;rm.hidden=!saved;if(saved)rm.textContent='Remove '+st.method+' from my methods';
   chipGroup('#waters',WATERS,function(w){return st.waterName===w},function(w){st.waterName=(st.waterName===w?'':w);renderChips();update()});
   chipGroup('#taste',TASTE,function(t){return st.taste.indexOf(t)>-1},function(t){toggle(st.taste,t);renderChips();update()});
   chipGroup('#tech',TECH,function(t){return st.tech.indexOf(t)>-1},function(t){toggle(st.tech,t);renderChips();update()})}
@@ -813,6 +823,7 @@ if(window.matchMedia&&matchMedia('(max-width:979px)').matches){$('#cardDetails')
 
 $('#form').addEventListener('submit',function(e){e.preventDefault();
   if(!st.coffee.trim()){$('#f_coffee').scrollIntoView({block:'center'});toast('Pick a coffee first.');return}
+  if(st.method&&methods.every(function(m){return m.toLowerCase()!==st.method.trim().toLowerCase()}))offerMethod(st.method);
   var miss=[];
   if(num(st.grind)==null)miss.push({n:'grind size',id:'f_grind'});
   if(num(st.coffeeA)==null&&num(st.coffeeT)==null)miss.push({n:'coffee weight',id:'f_coffeeT'});
@@ -1169,11 +1180,11 @@ $('#b_clear').addEventListener('click',function(){bf.q='';bf.coffee='';bf.method
 /* Saving: everything lives in this browser's localStorage */
 var LOADED=false,SKEY='brewlog.v1';
 var draftAt=0,lastDraftJs='';
-function persist(){if(!LOADED)return;try{var dr=(editId!=null&&editDraft?editDraft:st),dj=JSON.stringify(dr);if(dj!==lastDraftJs){lastDraftJs=dj;draftAt=Date.now()}localStorage.setItem(SKEY,JSON.stringify({v:1,draftAt:draftAt,coffees:coffees,grinders:grinders,schedules:schedules,notes:notes,filters:filters,history:history,nid:nid,draft:(editId!=null&&editDraft?editDraft:st)}))}catch(e){$('#storeWarn').hidden=false}
+function persist(){if(!LOADED)return;try{var dr=(editId!=null&&editDraft?editDraft:st),dj=JSON.stringify(dr);if(dj!==lastDraftJs){lastDraftJs=dj;draftAt=Date.now()}localStorage.setItem(SKEY,JSON.stringify({v:1,draftAt:draftAt,coffees:coffees,grinders:grinders,schedules:schedules,notes:notes,methods:methods,filters:filters,history:history,nid:nid,draft:(editId!=null&&editDraft?editDraft:st)}))}catch(e){$('#storeWarn').hidden=false}
   if(SYNC)queuePush()}
 (function(){try{var raw=localStorage.getItem(SKEY);if(raw){var d=JSON.parse(raw);
   if(Array.isArray(d.coffees))coffees=d.coffees;if(Array.isArray(d.grinders)&&d.grinders.length)grinders=d.grinders;
-  if(Array.isArray(d.history))history=d.history;if(Array.isArray(d.schedules))schedules=d.schedules;if(Array.isArray(d.notes))notes=d.notes;if(Array.isArray(d.filters))filters=d.filters;if(d.nid)nid=d.nid;
+  if(Array.isArray(d.history))history=d.history;if(Array.isArray(d.schedules))schedules=d.schedules;if(Array.isArray(d.notes))notes=d.notes;if(Array.isArray(d.methods))methods=d.methods;if(Array.isArray(d.filters))filters=d.filters;if(d.nid)nid=d.nid;
   if(d.draft&&typeof d.draft==='object'){var b=blank();for(var k in d.draft)b[k]=d.draft[k];if(!Array.isArray(b.pours)||!b.pours.length)b.pours=[{t:'0:00',up:''}];st=b}}}catch(e){}
   try{var dd0=JSON.parse(localStorage.getItem(SKEY)||'{}');draftAt=dd0.draftAt||Date.now();if(dd0.draftAt&&Date.now()-dd0.draftAt>12*36e5&&JSON.stringify(st)!==JSON.stringify(blank()))st=blank()}catch(e){}
   if(!st.filter)st.filter=lastFilter();lastDraftJs=JSON.stringify(st);
@@ -1181,12 +1192,12 @@ function persist(){if(!LOADED)return;try{var dr=(editId!=null&&editDraft?editDra
 
 /* Optional sync to the NAS server (server.js). Without it, this page just uses browser storage. */
 var SYNC=false,srev=0,lastSent='',pt=null,REVKEY='brewlog.rev';
-function dataOnly(){return{v:1,coffees:coffees,grinders:grinders,schedules:schedules,notes:notes,filters:filters,history:history,nid:nid}}
+function dataOnly(){return{v:1,coffees:coffees,grinders:grinders,schedules:schedules,notes:notes,methods:methods,filters:filters,history:history,nid:nid}}
 function setSyncUI(t,bad){var e=$('#syncMsg');if(e){e.textContent=t;e.style.color=bad?'var(--bad)':''}}
 function hasData(d){return!!d&&((d.history||[]).length||(d.coffees||[]).length||(d.schedules||[]).length||(d.notes||[]).length)}
 function queuePush(){if(JSON.stringify(dataOnly())===lastSent)return;clearTimeout(pt);pt=setTimeout(push,700)}
 function adopt(j,msg){try{var o={};try{o=JSON.parse(localStorage.getItem(SKEY))||{}}catch(e){}
-  o.v=1;o.coffees=j.data.coffees;o.grinders=j.data.grinders||grinders;o.schedules=j.data.schedules||[];o.notes=j.data.notes||[];o.filters=j.data.filters||filters;o.history=j.data.history;o.nid=j.data.nid||100;
+  o.v=1;o.coffees=j.data.coffees;o.grinders=j.data.grinders||grinders;o.schedules=j.data.schedules||[];o.notes=j.data.notes||[];o.methods=Array.isArray(j.data.methods)?j.data.methods:methods;o.filters=j.data.filters||filters;o.history=j.data.history;o.nid=j.data.nid||100;
   localStorage.setItem(SKEY,JSON.stringify(o));localStorage.setItem(REVKEY,String(j.rev));if(msg)sessionStorage.setItem('brewlog.msg',msg)}catch(e){}
   location.reload()}
 function putData(d,base){return fetch('api/data',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({baseRev:base,data:d})}).then(function(r){return r.json().then(function(j){return{s:r.status,j:j}})})}
@@ -1220,16 +1231,16 @@ $('#updateBtn').addEventListener('click',function(){var b=$('#updateBtn');b.disa
     toast('Updated '+x.j.updated.join(' and ')+'. Reloading…');setTimeout(waitReload,x.j.restart?2500:800)})
   .catch(function(){b.disabled=false;b.textContent='Update app';toast('Could not reach the NAS server.')})});
 function download(name,text){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500)}
-$('#exportBtn').addEventListener('click',function(){download('brew-log-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({v:1,coffees:coffees,grinders:grinders,schedules:schedules,notes:notes,filters:filters,history:history,nid:nid},null,1));toast('Backup downloaded.')});
+$('#exportBtn').addEventListener('click',function(){download('brew-log-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({v:1,coffees:coffees,grinders:grinders,schedules:schedules,notes:notes,methods:methods,filters:filters,history:history,nid:nid},null,1));toast('Backup downloaded.')});
 $('#importBtn').addEventListener('click',function(){$('#importFile').click()});
 $('#importFile').addEventListener('change',function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();
   r.onload=function(){try{var d=JSON.parse(r.result);if(!Array.isArray(d.coffees)||!Array.isArray(d.history))throw 0;
     if(!confirm('Replace everything in this browser with the backup ('+d.history.length+' brews, '+d.coffees.length+' coffees)?'))return;
-    var nd={v:1,coffees:d.coffees,grinders:d.grinders||grinders,schedules:d.schedules||[],notes:Array.isArray(d.notes)?d.notes:[],filters:d.filters||filters,history:d.history,nid:d.nid||100};
+    var nd={v:1,coffees:d.coffees,grinders:d.grinders||grinders,schedules:d.schedules||[],notes:Array.isArray(d.notes)?d.notes:[],methods:Array.isArray(d.methods)?d.methods:methods,filters:d.filters||filters,history:d.history,nid:d.nid||100};
     var done=function(){localStorage.setItem(SKEY,JSON.stringify(nd));location.reload()};
     if(SYNC)putData(nd,srev).then(function(x){if(x.s===200){localStorage.setItem(REVKEY,String(x.j.rev));done()}else toast('The NAS rejected the import. Reload and try again.')}).catch(function(){toast('Cannot reach the NAS.')});else done()}
     catch(x){toast('That file is not a Brew Log backup.')}};r.readAsText(f);e.target.value=''});
-$('#clearBtn2').addEventListener('click',function(){if(confirm('Are you sure? This deletes every brew, coffee and pour schedule. If this is synced to your NAS, that copy is cleared too. Export a backup first if you want to keep them.')&&(function(){var t=prompt('This cannot be undone. Type delete to confirm.');if(t===null)return false;if(t.trim().toLowerCase()!=='delete'){toast('Nothing was deleted. You did not type delete.');return false}return true})()){var wipe=function(){localStorage.removeItem(SKEY);localStorage.removeItem(REVKEY);location.reload()};if(SYNC)putData({v:1,coffees:[],grinders:grinders,schedules:[],notes:[],filters:filters,history:[],nid:100},srev).then(wipe).catch(function(){toast('Cannot reach the NAS.')});else wipe()}});
+$('#clearBtn2').addEventListener('click',function(){if(confirm('Are you sure? This deletes every brew, coffee and pour schedule. If this is synced to your NAS, that copy is cleared too. Export a backup first if you want to keep them.')&&(function(){var t=prompt('This cannot be undone. Type delete to confirm.');if(t===null)return false;if(t.trim().toLowerCase()!=='delete'){toast('Nothing was deleted. You did not type delete.');return false}return true})()){var wipe=function(){localStorage.removeItem(SKEY);localStorage.removeItem(REVKEY);location.reload()};if(SYNC)putData({v:1,coffees:[],grinders:grinders,schedules:[],notes:[],methods:['V60','Kalita Wave','Aeropress'],filters:filters,history:[],nid:100},srev).then(wipe).catch(function(){toast('Cannot reach the NAS.')});else wipe()}});
 syncInputs();renderHist();
 })();
 </script>
