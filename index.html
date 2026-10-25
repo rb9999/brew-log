@@ -505,6 +505,7 @@ a{color:var(--accent);text-underline-offset:2px}
       <div class="bbar"><span class="b-count" id="p_count"></span><button type="button" class="btn primary small" id="p_add">+ New schedule</button></div>
       <div class="addbox" id="p_form" hidden>
         <div class="field"><label for="p_name" class="hint">Schedule name</label><input type="text" id="p_name" placeholder="3x / 5x / rest" autocomplete="off"></div>
+        <div class="field"><label for="p_method" class="hint">Brew method</label><select id="p_method" aria-label="Brew method for this schedule"></select></div>
         <div class="field"><label for="p_desc" class="hint">Description or comments (optional)</label><textarea id="p_desc" rows="3" placeholder="Where it comes from, what it is good for, tips…"></textarea></div>
         <div id="p_steps" style="display:flex;flex-direction:column;gap:8px"></div>
         <div><button type="button" class="btn small" id="p_addStep">+ Add pour</button></div>
@@ -895,26 +896,27 @@ function renderScheduleSel(){var sel=$('#f_schedule');if(!sel)return;
   sel.innerHTML='<option value="">Custom (type my own)</option>'+schedOrder().map(function(i){var x=schedules[i];return'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>'}).join('');
   if(st.schedule&&!schedByName(st.schedule))st.schedule='';sel.value=st.schedule||''}
 function applySchedule(msg){var sc=schedByName(st.schedule);if(!sc)return;var W=schedWeights(),r=calcSteps(sc.steps,W.c,W.w);
+  if(sc.method&&!st.method){st.method=sc.method;renderChips()}
   st.pours=r.map(function(x){var o={t:x.t||'',up:x.up==null?'':String(r1(x.up))};if(x.valve){o.valve=x.valve;if(x.valve==='closed'&&x.ot)o.ot=x.ot}return o});if(!st.pours.length)st.pours=[{t:'0:00',up:''}];
   renderPours();update();if(msg){toast(W.c&&W.w?'Applied '+sc.name+'.':'Applied '+sc.name+'. Enter coffee and water weights to fill in the amounts.')}}
 $('#f_schedule').addEventListener('change',function(e){st.schedule=e.target.value;if(st.schedule)applySchedule(true);else update()});
 function schedSummary(sc){return sc.steps.map(function(p){var m=p.mode,v=p.v;return(m==='x'?v+'x':m==='pct'?v+'%':m==='g'?v+' g':'rest')+(p.valve==='closed'?' (closed'+(p.ot?', opens '+p.ot:'')+')':p.valve==='open'?' (open)':'')}).join(' · ')}
-var STARTERS=[{name:'4:6 method',about:'Tetsu Kasuya, V60. Five equal pours, 45 seconds apart. The first two (40% of the water) steer sweetness and acidity, the last three (60%) set the strength.',
+var STARTERS=[{name:'4:6 method',method:'V60',about:'Tetsu Kasuya, V60. Five equal pours, 45 seconds apart. The first two (40% of the water) steer sweetness and acidity, the last three (60%) set the strength.',
   steps:[0,45,90,135,180].map(function(t){return{t:Math.floor(t/60)+':'+('0'+t%60).slice(-2),mode:'pct',v:'20'}})},
-  {name:'Kalita Wave pulse pours',about:'Kalita Wave. Bloom with 2x the coffee weight, then three pulse pours about 40 seconds apart. The last pour takes whatever water is left. The flat bed is forgiving, so pour height and speed matter less. Aim to finish draining around 3:00 to 3:30.',
+  {name:'Kalita Wave pulse pours',method:'Kalita Wave',about:'Kalita Wave. Bloom with 2x the coffee weight, then three pulse pours about 40 seconds apart. The last pour takes whatever water is left. The flat bed is forgiving, so pour height and speed matter less. Aim to finish draining around 3:00 to 3:30.',
   steps:[{t:'0:00',mode:'x',v:'2'},{t:'0:40',mode:'pct',v:'35'},{t:'1:20',mode:'pct',v:'30'},{t:'2:00',mode:'rest',v:''}]}];
 function renderStarters(){var ul=$('#p_starters');if(!ul)return;ul.innerHTML='';
   var left=STARTERS.filter(function(sc){return!schedByName(sc.name)});$('#p_startHead').hidden=!left.length;
   left.forEach(function(sc){var have=false,li=document.createElement('li');li.className='bi ci';
-    li.innerHTML='<div class="b1"><strong>'+esc(sc.name)+'</strong><span class="rate">'+sc.steps.length+' pours</span></div><div class="b2" style="display:block">'+esc(sc.about)+'</div><div class="b2">'+esc(schedSummary(sc))+' <span class="hint">at '+esc(sc.steps.map(function(p){return p.t}).join(', '))+'</span></div>'+
+    li.innerHTML='<div class="b1"><strong>'+esc(sc.name)+'</strong><span class="rate">'+(sc.method?esc(sc.method)+' · ':'')+sc.steps.length+' pours</span></div><div class="b2" style="display:block">'+esc(sc.about)+'</div><div class="b2">'+esc(schedSummary(sc))+' <span class="hint">at '+esc(sc.steps.map(function(p){return p.t}).join(', '))+'</span></div>'+
       '<div class="acts"><button type="button" class="btn primary small" data-a="add"'+(have?' disabled':'')+'>'+(have?'Added':'Add to my schedules')+'</button></div>';
-    li.querySelector('[data-a=add]').addEventListener('click',function(){if(schedByName(sc.name))return;schedules.push({name:sc.name,desc:sc.about,steps:JSON.parse(JSON.stringify(sc.steps))});renderScheduleSel();renderSchedules();toast('Added '+sc.name+'.')});
+    li.querySelector('[data-a=add]').addEventListener('click',function(){if(schedByName(sc.name))return;schedules.push({name:sc.name,method:sc.method,desc:sc.about,steps:JSON.parse(JSON.stringify(sc.steps))});renderScheduleSel();renderSchedules();toast('Added '+sc.name+'.')});
     ul.appendChild(li)})}
 function renderSchedules(){persist();var ul=$('#p_list');ul.innerHTML='';renderStarters();
   $('#p_count').textContent=schedules.length+(schedules.length===1?' schedule':' schedules');
   if(!schedules.length){ul.innerHTML='<li class="empty">No pour schedules yet. Create one, then pick it on the Log a brew tab.</li>';return}
   schedOrder().forEach(function(i){var sc=schedules[i],W=schedWeights(),r=calcSteps(sc.steps,W.c||15,W.w||240),li=document.createElement('li');li.className='bi ci';
-    li.innerHTML='<div class="b1"><strong>'+esc(sc.name)+'</strong><span class="rate">'+sc.steps.length+' pours</span></div>'+(sc.desc?'<div class="b2" style="display:block;white-space:pre-wrap;color:var(--ink)">'+esc(sc.desc)+'</div>':'')+'<div class="b2">'+esc(schedSummary(sc))+'</div>'+
+    li.innerHTML='<div class="b1"><strong>'+esc(sc.name)+'</strong><span class="rate">'+(sc.method?esc(sc.method)+' · ':'')+sc.steps.length+' pours</span></div>'+(sc.desc?'<div class="b2" style="display:block;white-space:pre-wrap;color:var(--ink)">'+esc(sc.desc)+'</div>':'')+'<div class="b2">'+esc(schedSummary(sc))+'</div>'+
       '<div class="b2">'+r.map(function(x){return x.up==null?'–':r1(x.up)}).join(' → ')+' g <span class="hint">(at '+r1(W.c||15)+' g coffee, '+r1(W.w||240)+' g water)</span></div>'+
       '<div class="acts"><button type="button" class="btn primary small" data-a="use">Use</button><button type="button" class="btn small ghost" data-a="edit">Edit</button><button type="button" class="btn small ghost" data-a="rm">Delete</button></div>';
     li.querySelector('[data-a=use]').addEventListener('click',function(){st.schedule=sc.name;syncInputs();applySchedule(true);showTab('log');window.scrollTo({top:0})});
@@ -924,15 +926,19 @@ function renderSchedules(){persist();var ul=$('#p_list');ul.innerHTML='';renderS
     ul.appendChild(li)})}
 var sf=null;
 function openSchedForm(i){sedit=i;sf=i==null?{name:'',steps:[{t:'0:00',mode:'x',v:'3'},{t:'0:45',mode:'x',v:'5'},{t:'',mode:'rest',v:''}]}:JSON.parse(JSON.stringify(schedules[i]));
-  var W=schedWeights();$('#p_name').value=sf.name;$('#p_desc').value=sf.desc||'';$('#p_pc').value=String(W.c||15);$('#p_pw').value=String(W.w||240);
+  var W=schedWeights();$('#p_name').value=sf.name;$('#p_desc').value=sf.desc||'';if(i==null&&st.method)sf.method=st.method;fillSchedMethod();$('#p_pc').value=String(W.c||15);$('#p_pw').value=String(W.w||240);
   $('#p_form').hidden=false;renderSteps();$('#p_name').focus()}
+function fillSchedMethod(){var l=allMethods();if(sf.method&&l.indexOf(sf.method)<0)l.push(sf.method);
+  $('#p_method').innerHTML='<option value="">Any method</option>'+l.map(function(m){return'<option value="'+esc(m)+'">'+esc(m)+'</option>'}).join('');$('#p_method').value=sf.method||''}
+$('#p_method').addEventListener('change',function(e){sf.method=e.target.value;if(!sf.method)delete sf.method;renderSteps()});
+function schedSw(){return sf.method==='Switch'||sf.steps.some(function(p){return p.valve})}
 function renderSteps(){var box=$('#p_steps');box.innerHTML='';var c=num($('#p_pc').value),w=num($('#p_pw').value),r=calcSteps(sf.steps,c,w);
   sf.steps.forEach(function(p,i){var row=document.createElement('div');row.style.cssText='display:flex;flex-wrap:wrap;gap:8px;align-items:center';
     row.innerHTML='<span class="hint" style="width:100%">Pour '+(i+1)+(i===0?' (bloom)':'')+'</span>'+
       '<input type="text" inputmode="numeric" data-i="'+i+'" data-f="t" value="'+esc(p.t)+'" placeholder="time" aria-label="Pour '+(i+1)+' start time" style="width:72px;font-family:var(--font-num)">'+
       (p.mode==='rest'?'':'<input type="text" inputmode="decimal" data-i="'+i+'" data-f="v" value="'+esc(p.v)+'" aria-label="Pour '+(i+1)+' amount" style="width:72px;font-family:var(--font-num)">')+
       '<select data-i="'+i+'" data-f="mode" aria-label="Pour '+(i+1)+' unit" style="width:auto;flex:1 1 120px">'+SMODES.map(function(m){return'<option value="'+m[0]+'"'+(p.mode===m[0]?' selected':'')+'>'+m[1]+'</option>'}).join('')+'</select>'+
-      '<select data-i="'+i+'" data-f="valve" aria-label="Pour '+(i+1)+' valve (Switch only)" style="width:auto;flex:0 1 130px"><option value="">No valve</option><option value="open"'+(p.valve==='open'?' selected':'')+'>Valve open</option><option value="closed"'+(p.valve==='closed'?' selected':'')+'>Valve closed</option></select>'+
+      (schedSw()?'<select data-i="'+i+'" data-f="valve" aria-label="Pour '+(i+1)+' valve (Switch only)" style="width:auto;flex:0 1 130px"><option value="">No valve</option><option value="open"'+(p.valve==='open'?' selected':'')+'>Valve open</option><option value="closed"'+(p.valve==='closed'?' selected':'')+'>Valve closed</option></select>':'')+
       (p.valve==='closed'?'<input type="text" inputmode="numeric" data-i="'+i+'" data-f="ot" value="'+esc(p.ot||'')+'" placeholder="opens at" aria-label="Pour '+(i+1)+' valve open time" style="width:80px;font-family:var(--font-num)">':'')+
       '<span class="hint" id="pv'+i+'" style="font-family:var(--font-num)"></span>'+
       '<button type="button" class="icon" data-rm="'+i+'" aria-label="Remove pour '+(i+1)+'"'+(sf.steps.length<2?' disabled':'')+'>×</button>';
@@ -952,7 +958,7 @@ $('#p_cancel').addEventListener('click',function(){$('#p_form').hidden=true});
 $('#p_form').addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();e.target.blur()}});
 $('#p_save').addEventListener('click',function(){var n=$('#p_name').value.trim();if(!n){$('#p_name').focus();toast('Give the schedule a name.');return}
   if(schedules.some(function(x,i){return x.name===n&&i!==sedit})){toast('A schedule with that name already exists.');return}
-  var old=sedit!=null?schedules[sedit].name:null;sf.name=n;sf.desc=$('#p_desc').value.trim();
+  var old=sedit!=null?schedules[sedit].name:null;sf.name=n;sf.desc=$('#p_desc').value.trim();sf.method=$('#p_method').value;if(!sf.method)delete sf.method;if(sf.method&&sf.method!=='Switch')sf.steps.forEach(function(x){delete x.valve;delete x.ot});
   if(sedit==null)schedules.push(sf);else{schedules[sedit]=sf;if(old!==n&&st.schedule===old)st.schedule=n}
   $('#p_form').hidden=true;renderScheduleSel();renderSchedules();toast('Saved '+n+'.')});
 
