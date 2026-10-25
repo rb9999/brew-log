@@ -77,6 +77,9 @@ input:focus-visible,textarea:focus-visible,button:focus-visible,select:focus-vis
 .pour-head{display:grid;grid-template-columns:78px minmax(70px,1fr) minmax(90px,1fr) 52px 44px;gap:8px;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
 .delta{font-family:var(--font-num);font-size:12.5px;color:var(--muted);text-align:right}
 .pour input{font-family:var(--font-num)}
+.pv{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--muted);margin:-2px 0 6px}
+.pv .chip{padding:4px 14px;min-height:34px}
+.pv input{width:80px;font-family:var(--font-num)}
 .pcm{display:block;text-align:right;font-size:17px;line-height:24px;color:var(--muted)}
 .na{opacity:.35}
 .btn{font:inherit;font-weight:500;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:0 16px;min-height:44px;cursor:pointer}
@@ -593,6 +596,8 @@ function cardT(t){if(t==null)return'';var m=Math.floor(t/60),s=t%60;return m===0
 function r1(n){return(Math.round(n*10)/10).toString()}
 
 var methods=['V60','Kalita Wave','Aeropress'],declinedMethod='';
+function allMethods(){return methods.filter(function(m){return m.toLowerCase()!=='switch'}).concat(['Switch'])}
+function isSw(){return(st.method||'').trim().toLowerCase()==='switch'}
 var WATERS=['Tap','Light','Medium','Dark'];
 var TASTE=['Balanced','Sweet','Fruity','Roasty','Bright','Good acidity','Juicy','Clean','Floral','Chocolatey','Nutty','Caramel','Citrus','Berry','Smooth','Full body','Thin','Bitter','Sour','Sharp acidity','Weak','Muted','Astringent','Harsh','Dry','Salty','Flat','Grassy','Smoky'];
 var GOOD=6.5;
@@ -649,7 +654,7 @@ function chipGroup(id,items,isOn,onClick,labelFn){var box=$(id);box.innerHTML=''
   items.forEach(function(it){var b=document.createElement('button');b.type='button';b.className='chip';b.textContent=labelFn?labelFn(it):it;
     b.setAttribute('aria-pressed',isOn(it)?'true':'false');b.addEventListener('click',function(){onClick(it)});box.appendChild(b)});return box}
 function offerMethod(v){v=(v||'').trim();if(!v)return;
-  var ex=methods.filter(function(m){return m.toLowerCase()===v.toLowerCase()})[0];
+  var ex=allMethods().filter(function(m){return m.toLowerCase()===v.toLowerCase()})[0];
   if(ex){st.method=ex;declinedMethod='';renderChips();update();return}
   if(v===declinedMethod)return;
   if(confirm('Add "'+v+'" to your saved brew methods?\n\nOK adds it to the list. Cancel uses it for this brew only.')){methods.push(v);st.method=v;declinedMethod='';renderChips();update();toast('Added '+v+' to your brew methods.')}
@@ -659,35 +664,44 @@ $('#methodRm').addEventListener('click',function(){var n=st.method,i=methods.ind
 $('#methodRn').addEventListener('click',function(){var old=st.method;if(!old)return;
   var nn=prompt('Rename "'+old+'" to:\n\nThis changes the brew method button and every saved brew that used it.',old);if(nn===null)return;nn=nn.trim();
   if(!nn||nn===old)return;
-  if(methods.some(function(m){return m!==old&&m.toLowerCase()===nn.toLowerCase()})){toast(nn+' is already one of your methods. Pick a different name.');return}
-  var i=methods.indexOf(old),n=0;if(i>-1)methods[i]=nn;
+  var bi=nn.toLowerCase()==='switch';if(bi)nn='Switch';
+  if(!bi&&allMethods().some(function(m){return m!==old&&m.toLowerCase()===nn.toLowerCase()})){toast(nn+' is already one of your methods. Pick a different name.');return}
+  var i=methods.indexOf(old),n=0;if(i>-1){if(bi)methods.splice(i,1);else methods[i]=nn}
   history.forEach(function(h){if(h.method===old){h.method=nn;n++}});
   if(editDraft&&editDraft.method===old)editDraft.method=nn;
   if(bf.method===old)bf.method=nn;
   st.method=nn;declinedMethod='';renderChips();renderHist();if(!$('#panel-brews').hidden)renderBrews();update();
   toast('Renamed '+old+' to '+nn+(n?' on '+n+(n===1?' brew.':' brews.'):'.'))});
 function renderChips(){
-  var mb=chipGroup('#methods',methods,function(m){return st.method===m},function(m){st.method=(st.method===m?'':m);$('#f_methodOther').value='';renderChips();update()});
+  methods=methods.filter(function(m){return m.toLowerCase()!=='switch'});
+  var mb=chipGroup('#methods',allMethods(),function(m){return st.method===m},function(m){st.method=(st.method===m?'':m);$('#f_methodOther').value='';renderChips();update()});
   var o=document.createElement('input');o.type='text';o.id='f_methodOther';o.className='inline-other';o.placeholder='Other method';o.setAttribute('aria-label','Other brew method');
-  o.value=methods.indexOf(st.method)<0?st.method:'';o.addEventListener('input',function(){st.method=o.value;Array.prototype.forEach.call(mb.querySelectorAll('.chip'),function(c){c.setAttribute('aria-pressed','false')});update()});o.addEventListener('change',function(){offerMethod(o.value)});mb.appendChild(o);
-  var rm=$('#methodRm'),rn=$('#methodRn'),saved=methods.indexOf(st.method)>-1;rm.hidden=!saved;if(saved)rm.textContent='Remove '+st.method+' from my methods';rn.hidden=!st.method;if(st.method)rn.textContent='Rename '+st.method;
+  o.value=allMethods().indexOf(st.method)<0?st.method:'';o.addEventListener('input',function(){st.method=o.value;Array.prototype.forEach.call(mb.querySelectorAll('.chip'),function(c){c.setAttribute('aria-pressed','false')});update()});o.addEventListener('change',function(){offerMethod(o.value)});mb.appendChild(o);
+  var rm=$('#methodRm'),rn=$('#methodRn'),saved=methods.indexOf(st.method)>-1;rm.hidden=!saved;if(saved)rm.textContent='Remove '+st.method+' from my methods';rn.hidden=!st.method||st.method==='Switch';if(!rn.hidden)rn.textContent='Rename '+st.method;
   chipGroup('#waters',WATERS,function(w){return st.waterName===w},function(w){st.waterName=(st.waterName===w?'':w);renderChips();update()});
   chipGroup('#taste',TASTE,function(t){return st.taste.indexOf(t)>-1},function(t){toggle(st.taste,t);renderChips();update()});
   chipGroup('#tech',TECH,function(t){return st.tech.indexOf(t)>-1},function(t){toggle(st.tech,t);renderChips();update()})}
 function toggle(a,v){var i=a.indexOf(v);if(i>-1)a.splice(i,1);else a.push(v)}
 
-function renderPours(){var box=$('#pours');box.innerHTML='';
+var pvShown=null;
+function renderPours(){var box=$('#pours');box.innerHTML='';pvShown=isSw();
   st.pours.forEach(function(p,i){var r=document.createElement('div');r.className='pour';
     r.innerHTML='<div class="pl">Pour '+(i+1)+(i===0?'<small>bloom</small>':'')+'</div>'+
     '<input type="text" inputmode="numeric" id="pt'+i+'" data-i="'+i+'" data-f="t" value="'+esc(p.t)+'" placeholder="1:10" aria-label="Pour '+(i+1)+' start time">'+
     '<div class="unit" data-u="g"><input type="text" inputmode="decimal" id="pu'+i+'" data-i="'+i+'" data-f="up" value="'+esc(p.up)+'" aria-label="Pour '+(i+1)+' cumulative weight in grams"></div>'+
     '<span class="delta" id="pd'+i+'"></span>'+
     '<button type="button" class="icon" data-rm="'+i+'" aria-label="Remove pour '+(i+1)+'"'+(st.pours.length<2?' disabled':'')+'>×</button>';
-    box.appendChild(r)})}
+    box.appendChild(r);
+    if(pvShown){var cl=p.valve==='closed',v=document.createElement('div');v.className='pv';
+      v.innerHTML='<span>Valve</span><button type="button" class="chip" data-vv="open" data-i="'+i+'" aria-pressed="'+(!cl)+'">Open</button><button type="button" class="chip" data-vv="closed" data-i="'+i+'" aria-pressed="'+cl+'">Closed</button>'+
+        (cl?'<span>opens at</span><input type="text" inputmode="numeric" id="po'+i+'" data-i="'+i+'" data-f="ot" value="'+esc(p.ot||'')+'" placeholder="1:30" aria-label="Pour '+(i+1)+' valve open time"><span id="pg'+i+'"></span>':'');
+      box.appendChild(v)}})}
 $('#pours').addEventListener('input',function(e){var d=e.target.dataset;if(d.f){st.pours[+d.i][d.f]=e.target.value;if(st.schedule){st.schedule='';renderScheduleSel()}update()}});
-$('#pours').addEventListener('change',function(e){var d=e.target.dataset;if(d.f==='t'){var t=parseT(e.target.value);if(t!=null){e.target.value=fmtT(t);st.pours[+d.i].t=e.target.value;update()}}});
-$('#pours').addEventListener('click',function(e){var b=e.target.closest('[data-rm]');if(b&&st.pours.length>1){st.pours.splice(+b.dataset.rm,1);st.schedule='';renderScheduleSel();renderPours();update()}});
-$('#addPour').addEventListener('click',function(){st.schedule='';renderScheduleSel();st.pours.push({t:'',up:''});renderPours();update();var el=$('#pt'+(st.pours.length-1));if(el)el.focus()});
+$('#pours').addEventListener('change',function(e){var d=e.target.dataset;if(d.f==='t'||d.f==='ot'){var t=parseT(e.target.value);if(t!=null){e.target.value=fmtT(t);st.pours[+d.i][d.f]=e.target.value;update()}}});
+$('#pours').addEventListener('click',function(e){var vb=e.target.closest('[data-vv]');
+  if(vb){var pp=st.pours[+vb.dataset.i];pp.valve=vb.dataset.vv;if(pp.valve==='open')delete pp.ot;st.schedule='';renderScheduleSel();renderPours();update();var oe=$('#po'+vb.dataset.i);if(oe&&pp.valve==='closed')oe.focus();return}
+  var b=e.target.closest('[data-rm]');if(b&&st.pours.length>1){st.pours.splice(+b.dataset.rm,1);st.schedule='';renderScheduleSel();renderPours();update()}});
+$('#addPour').addEventListener('click',function(){st.schedule='';renderScheduleSel();var pv0=st.pours[st.pours.length-1],np={t:'',up:''};if(isSw())np.valve=(pv0&&pv0.valve)||'open';st.pours.push(np);renderPours();update();var el=$('#pt'+(st.pours.length-1));if(el)el.focus()});
 
 keys.forEach(function(k){var el=$('#f_'+k);if(!el)return;
   el.addEventListener('input',function(){st[k]=el.value;if(st.schedule&&/^(coffee|water)[TA]$/.test(k))applySchedule(false);update()});
@@ -697,6 +711,14 @@ Array.prototype.forEach.call(document.querySelectorAll('[data-step]'),function(b
   var id=b.dataset.for,step=+b.dataset.step,el=$('#'+id),cur=num(el.value);if(cur==null)cur=(id==='f_temp'?200:5);
   var v=cur+step;el.value=step%1===0?String(Math.round(v)):v.toFixed(1);st[id.slice(2)]=el.value;update()})});
 
+function valveLine(h){var ps=h.pours||[];if(!/switch/i.test(h.method||'')||!ps.some(function(p){return p.valve}))return'';
+  return ps.map(function(p,i){return'P'+(i+1)+' '+(p.valve==='closed'?'closed'+(p.ot?', opens '+p.ot:''):'open')}).join(' · ')}
+function valveCheck(){if(!isSw())return'';var ps=st.pours,dd=parseT(st.dd);
+  for(var i=0;i<ps.length;i++){var p=ps[i];if(p.valve!=='closed')continue;var t=parseT(p.t),o=parseT(p.ot),nx=ps[i+1]?parseT(ps[i+1].t):null;
+    if(o!=null&&t!=null&&o<=t)return'Pour '+(i+1)+': the valve should open after the pour starts.';
+    if(o!=null&&nx!=null&&o>=nx)return'Pour '+(i+1)+': the valve should open before pour '+(i+2)+' starts.';
+    if(o!=null&&dd!=null&&o>=dd)return'Pour '+(i+1)+': the valve should open before drawdown ends.'}
+  return''}
 function cardHtml(){
   var w=st.waterT?(st.waterT+(st.waterA?' ('+st.waterA+')':'')):'';
   var c=st.coffeeT?(st.coffeeT+(st.coffeeA?' ('+st.coffeeA+')':'')):'';
@@ -705,7 +727,7 @@ function cardHtml(){
   return '<div class="c-head"><span>'+esc(st.coffee||'Coffee name')+'</span><span>'+esc([st.waterName,st.waterLevel].filter(Boolean).join(' '))+'</span></div>'+
   '<div class="c-method">'+esc(st.method||'Method')+'</div>'+
   '<div class="c-body"><div class="col"><div>'+esc(w)+'</div><div>'+esc(c)+'</div><div>'+(st.grind?esc(st.grinder)+' '+esc(st.grind):'')+'</div><div>'+(st.temp?'T '+esc(st.temp):'')+'</div></div>'+
-  '<div class="col"><div class="c-pours">'+pours+'</div>'+(st.pourNote?'<div class="pcm">'+esc(st.pourNote)+'</div>':'')+'</div></div>'+
+  '<div class="col"><div class="c-pours">'+pours+'</div>'+(st.pourNote?'<div class="pcm">'+esc(st.pourNote)+'</div>':'')+(valveLine(st)?'<div class="pcm">'+esc(valveLine(st))+'</div>':'')+'</div></div>'+
   '<div class="c-body"><div class="col"><div>'+(st.yield?'Y '+esc(st.yield):'&nbsp;')+'</div><div>'+(st.dd?'DD '+cardT(parseT(st.dd)):'&nbsp;')+'</div></div><div class="col c-rating"><div>&nbsp;</div><div>'+(r!=null?'R '+r.toFixed(1)+' / 10':'')+'</div></div></div>'+
   '<div class="c-notes">'+esc(st.notes)+(st.notes?'':'&nbsp;')+'</div>'+
   (st.taste.length?'<div class="c-tags">'+esc(st.taste.join(' · '))+'</div>':'')}
@@ -729,13 +751,17 @@ function update(){persist();updateBanner();var scd=schedByName(st.schedule);$('#
   $('#o_ratioNote').textContent=(w&&c)?'using '+(wa!=null||ca!=null?'actual':'target')+' weights':'';
   var y=num(st.yield);var rt=retention(st);$('#o_retained').textContent=rt?r1(rt.rec)+'% recovered · '+r1(rt.pct)+'% retained ('+r1(rt.g)+' g'+(rt.perG!=null?', '+rt.perG.toFixed(1)+' g per g of coffee':'')+')':((y!=null&&w)?r1(w-y)+' g stayed in the grounds':'Retention: enter the yield (water out) and I will show % recovered and % retained.');
   // pours
+  if(isSw()!==pvShown)renderPours();
+  st.pours.forEach(function(p,i){var g=$('#pg'+i);if(!g)return;var o=parseT(p.ot),nx=st.pours[i+1]?parseT(st.pours[i+1].t):null;g.textContent=(p.valve==='closed'&&o!=null&&nx!=null&&nx>o)?'drains '+Math.floor((nx-o)/60)+':'+String((nx-o)%60).padStart(2,'0'):''});
   var prev=0,last=null;
   st.pours.forEach(function(p,i){var u=num(p.up),d=$('#pd'+i);if(!d)return;if(u!=null){d.textContent='+'+r1(u-prev);prev=u;last=u}else d.textContent=''});
   var chk=$('#o_pourCheck'),ts=st.pours.map(function(p){return parseT(p.t)}),bad=false;
   for(var i=1;i<ts.length;i++){if(ts[i]!=null&&ts[i-1]!=null&&ts[i]<=ts[i-1])bad=true}
   var ups=st.pours.map(function(p){return num(p.up)}).filter(function(x){return x!=null});
   for(var j=1;j<ups.length;j++){if(ups[j]<=ups[j-1])bad=true}
+  var vmsg=valveCheck();
   if(bad){chk.className='status warn';chk.textContent='Check the order: times and weights should keep rising.'}
+  else if(vmsg){chk.className='status warn';chk.textContent=vmsg}
   else if(last!=null&&wt!=null){if(last===wt){chk.className='status ok';chk.textContent='Last pour matches total water'}else{chk.className='status warn';chk.textContent='Last pour is '+r1(last)+' g, total water is '+r1(wt)+' g'}}
   else{chk.className='status';chk.textContent=''}
   // roast age
@@ -833,13 +859,15 @@ if(window.matchMedia&&matchMedia('(max-width:979px)').matches){$('#cardDetails')
 
 $('#form').addEventListener('submit',function(e){e.preventDefault();
   if(!st.coffee.trim()){$('#f_coffee').scrollIntoView({block:'center'});toast('Pick a coffee first.');return}
-  if(st.method&&methods.every(function(m){return m.toLowerCase()!==st.method.trim().toLowerCase()}))offerMethod(st.method);
+  if(st.method&&allMethods().every(function(m){return m.toLowerCase()!==st.method.trim().toLowerCase()}))offerMethod(st.method);
   var miss=[];
   if(num(st.grind)==null)miss.push({n:'grind size',id:'f_grind'});
   if(num(st.coffeeA)==null&&num(st.coffeeT)==null)miss.push({n:'coffee weight',id:'f_coffeeT'});
   if(num(st.waterA)==null&&num(st.waterT)==null)miss.push({n:'water weight',id:'f_waterT'});
   if(num(st.rating)==null)miss.push({n:'rating',id:'f_rating'});
+  if(isSw())st.pours.forEach(function(p,i){if(p.valve==='closed'&&parseT(p.ot)==null)miss.push({n:'valve open time (pour '+(i+1)+')',id:'po'+i})});
   if(miss.length&&!confirm('Missing: '+miss.map(function(m){return m.n}).join(', ')+'.\n\nOK saves the brew anyway (the rating is saved as N/A). Cancel lets you fill them in.')){var fe=$('#'+miss[0].id);fe.scrollIntoView({block:'center'});fe.focus();return}
+  if(isSw())st.pours.forEach(function(p){if(!p.valve)p.valve='open'});else st.pours.forEach(function(p){delete p.valve;delete p.ot});
   if(editId!=null){var ix=-1;history.forEach(function(h,i){if(h.id===editId)ix=i});
     if(ix>-1){var u=JSON.parse(JSON.stringify(st));u.id=editId;u.date=history[ix].date;u.level=(coffeeRec(u.coffee)||{}).level||'';if(history[ix].ex)u.ex=true;history[ix]=u}
     endEdit();syncInputs();renderHist();renderBrews();showTab('brews');toast('Brew updated.');return}
@@ -859,7 +887,7 @@ $('#editCancel').addEventListener('click',function(){endEdit();syncInputs();show
 var SMODES=[['x','x coffee'],['pct','% of water'],['g','grams'],['rest','rest of water']];
 function calcSteps(steps,c,w){var cum=0;return steps.map(function(p){var v=num(p.v),add=null;
   if(p.mode==='x'){if(v!=null&&c)add=v*c}else if(p.mode==='pct'){if(v!=null&&w)add=v/100*w}else if(p.mode==='g'){if(v!=null)add=v}else if(p.mode==='rest'){if(w)add=Math.max(0,w-cum)}
-  if(add==null)return{t:p.t,add:null,up:null};cum+=add;return{t:p.t,add:add,up:cum}})}
+  if(add==null)return{t:p.t,add:null,up:null,valve:p.valve,ot:p.ot};cum+=add;return{t:p.t,add:add,up:cum,valve:p.valve,ot:p.ot}})}
 function schedWeights(){var wa=num(st.waterA),wt=num(st.waterT),ca=num(st.coffeeA),ct=num(st.coffeeT);return{c:ca!=null?ca:ct,w:wa!=null?wa:wt}}
 function schedOrder(){return schedules.map(function(x,i){return i}).sort(function(a,b){return schedules[a].name.localeCompare(schedules[b].name,undefined,{numeric:true,sensitivity:'base'})})}
 function schedByName(n){return schedules.filter(function(x){return x.name===n})[0]}
@@ -867,10 +895,10 @@ function renderScheduleSel(){var sel=$('#f_schedule');if(!sel)return;
   sel.innerHTML='<option value="">Custom (type my own)</option>'+schedOrder().map(function(i){var x=schedules[i];return'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>'}).join('');
   if(st.schedule&&!schedByName(st.schedule))st.schedule='';sel.value=st.schedule||''}
 function applySchedule(msg){var sc=schedByName(st.schedule);if(!sc)return;var W=schedWeights(),r=calcSteps(sc.steps,W.c,W.w);
-  st.pours=r.map(function(x){return{t:x.t||'',up:x.up==null?'':String(r1(x.up))}});if(!st.pours.length)st.pours=[{t:'0:00',up:''}];
+  st.pours=r.map(function(x){var o={t:x.t||'',up:x.up==null?'':String(r1(x.up))};if(x.valve){o.valve=x.valve;if(x.valve==='closed'&&x.ot)o.ot=x.ot}return o});if(!st.pours.length)st.pours=[{t:'0:00',up:''}];
   renderPours();update();if(msg){toast(W.c&&W.w?'Applied '+sc.name+'.':'Applied '+sc.name+'. Enter coffee and water weights to fill in the amounts.')}}
 $('#f_schedule').addEventListener('change',function(e){st.schedule=e.target.value;if(st.schedule)applySchedule(true);else update()});
-function schedSummary(sc){return sc.steps.map(function(p){var m=p.mode,v=p.v;return m==='x'?v+'x':m==='pct'?v+'%':m==='g'?v+' g':'rest'}).join(' · ')}
+function schedSummary(sc){return sc.steps.map(function(p){var m=p.mode,v=p.v;return(m==='x'?v+'x':m==='pct'?v+'%':m==='g'?v+' g':'rest')+(p.valve==='closed'?' (closed'+(p.ot?', opens '+p.ot:'')+')':p.valve==='open'?' (open)':'')}).join(' · ')}
 var STARTERS=[{name:'4:6 method',about:'Tetsu Kasuya, V60. Five equal pours, 45 seconds apart. The first two (40% of the water) steer sweetness and acidity, the last three (60%) set the strength.',
   steps:[0,45,90,135,180].map(function(t){return{t:Math.floor(t/60)+':'+('0'+t%60).slice(-2),mode:'pct',v:'20'}})},
   {name:'Kalita Wave pulse pours',about:'Kalita Wave. Bloom with 2x the coffee weight, then three pulse pours about 40 seconds apart. The last pour takes whatever water is left. The flat bed is forgiving, so pour height and speed matter less. Aim to finish draining around 3:00 to 3:30.',
@@ -904,15 +932,18 @@ function renderSteps(){var box=$('#p_steps');box.innerHTML='';var c=num($('#p_pc
       '<input type="text" inputmode="numeric" data-i="'+i+'" data-f="t" value="'+esc(p.t)+'" placeholder="time" aria-label="Pour '+(i+1)+' start time" style="width:72px;font-family:var(--font-num)">'+
       (p.mode==='rest'?'':'<input type="text" inputmode="decimal" data-i="'+i+'" data-f="v" value="'+esc(p.v)+'" aria-label="Pour '+(i+1)+' amount" style="width:72px;font-family:var(--font-num)">')+
       '<select data-i="'+i+'" data-f="mode" aria-label="Pour '+(i+1)+' unit" style="width:auto;flex:1 1 120px">'+SMODES.map(function(m){return'<option value="'+m[0]+'"'+(p.mode===m[0]?' selected':'')+'>'+m[1]+'</option>'}).join('')+'</select>'+
+      '<select data-i="'+i+'" data-f="valve" aria-label="Pour '+(i+1)+' valve (Switch only)" style="width:auto;flex:0 1 130px"><option value="">No valve</option><option value="open"'+(p.valve==='open'?' selected':'')+'>Valve open</option><option value="closed"'+(p.valve==='closed'?' selected':'')+'>Valve closed</option></select>'+
+      (p.valve==='closed'?'<input type="text" inputmode="numeric" data-i="'+i+'" data-f="ot" value="'+esc(p.ot||'')+'" placeholder="opens at" aria-label="Pour '+(i+1)+' valve open time" style="width:80px;font-family:var(--font-num)">':'')+
       '<span class="hint" id="pv'+i+'" style="font-family:var(--font-num)"></span>'+
       '<button type="button" class="icon" data-rm="'+i+'" aria-label="Remove pour '+(i+1)+'"'+(sf.steps.length<2?' disabled':'')+'>×</button>';
     box.appendChild(row)});updPrev()}
 function updPrev(){var c=num($('#p_pc').value),w=num($('#p_pw').value),r=calcSteps(sf.steps,c,w);
   r.forEach(function(x,i){var e=$('#pv'+i);if(e)e.textContent=x.up==null?'':'+'+r1(x.add)+' g = '+r1(x.up)+' g'})}
-$('#p_steps').addEventListener('input',function(e){var d=e.target.dataset;if(d.f==='t'||d.f==='v'){sf.steps[+d.i][d.f]=e.target.value;updPrev()}});
+$('#p_steps').addEventListener('input',function(e){var d=e.target.dataset;if(d.f==='t'||d.f==='v'||d.f==='ot'){sf.steps[+d.i][d.f]=e.target.value;updPrev()}});
 $('#p_steps').addEventListener('change',function(e){var d=e.target.dataset;
   if(d.f==='mode'){sf.steps[+d.i].mode=e.target.value;if(e.target.value==='rest')sf.steps[+d.i].v='';renderSteps()}
-  if(d.f==='t'){var t=parseT(e.target.value);if(t!=null){e.target.value=fmtT(t);sf.steps[+d.i].t=e.target.value}}});
+  if(d.f==='valve'){var sx=sf.steps[+d.i];if(e.target.value)sx.valve=e.target.value;else delete sx.valve;if(sx.valve!=='closed')delete sx.ot;renderSteps()}
+  if(d.f==='t'||d.f==='ot'){var t=parseT(e.target.value);if(t!=null){e.target.value=fmtT(t);sf.steps[+d.i][d.f]=e.target.value}}});
 $('#p_steps').addEventListener('click',function(e){var b=e.target.closest('[data-rm]');if(b&&sf.steps.length>1){sf.steps.splice(+b.dataset.rm,1);renderSteps()}});
 $('#p_addStep').addEventListener('click',function(){sf.steps.push({t:'',mode:'x',v:''});renderSteps()});
 $('#p_pc').addEventListener('input',updPrev);$('#p_pw').addEventListener('input',updPrev);
@@ -933,7 +964,7 @@ $('#rmExamples').addEventListener('click',function(){var n=history.filter(functi
 function startFrom(h){if(editId!=null)endEdit();var b=blank();
   ['coffee','method','waterName','waterLevel','waterT','coffeeT','grinder','grind','temp','filter'].forEach(function(k){if(h[k]!=null&&h[k]!=='')b[k]=h[k]});
   b.tech=(h.tech||[]).slice();
-  b.pours=(h.pours&&h.pours.length)?h.pours.map(function(p){return{t:p.t,up:p.up}}):[{t:'0:00',up:''}];
+  b.pours=(h.pours&&h.pours.length)?h.pours.map(function(p){var o={t:p.t,up:p.up};if(p.valve){o.valve=p.valve;if(p.ot)o.ot=p.ot}return o}):[{t:'0:00',up:''}];
   if(!coffeeRec(h.coffee))coffees.push({name:h.coffee,roaster:'',roast:''});
   st=b;startedFrom='Started from '+coffeeLabel(h.coffee)+(h.date?' · '+dateLabel(h.date):'')+'. Results are blank.';syncInputs();showTab('log');toast('Started from '+h.coffee+'. Results are blank.');window.scrollTo({top:0,behavior:'smooth'})}
 /* notes */
@@ -1143,7 +1174,7 @@ function brewsFiltered(){var words=bf.q.toLowerCase().split(/\s+/).filter(Boolea
     if(bf.coffee&&h.coffee!==bf.coffee)return false;if(bf.method&&h.method!==bf.method)return false;
     if(bf.min&&(num(h.rating)==null||num(h.rating)<bf.min))return false;
     if(bf.tags.length&&!bf.tags.every(function(t){return(h.taste||[]).indexOf(t)>-1}))return false;
-    var hay=[coffeeLabel(h.coffee),h.method,h.notes,h.pourNote,h.filter,h.waterName,h.grinder+' '+h.grind,(h.taste||[]).join(' '),(h.tech||[]).join(' ')].join(' ').toLowerCase();
+    var hay=[coffeeLabel(h.coffee),h.method,h.notes,h.pourNote,valveLine(h),h.filter,h.waterName,h.grinder+' '+h.grind,(h.taste||[]).join(' '),(h.tech||[]).join(' ')].join(' ').toLowerCase();
     return words.every(function(w){return hay.indexOf(w)>-1})});
   rows.sort(function(a,b){
     if(bf.sort==='top'){var ra=num(a.h.rating),rb=num(b.h.rating);if(ra==null&&rb!=null)return 1;if(rb==null&&ra!=null)return -1;if(ra!==rb)return rb-ra}
@@ -1168,7 +1199,7 @@ function renderBrewList(){var list=brewsFiltered(),n=activeCount();
     var rtn=retention(h);
     function stat(l,v){return'<span class="st"><span class="sl">'+l+'</span><span class="sv">'+esc(v||'–')+'</span></span>'}
     li.innerHTML='<button type="button" class="bhead" aria-expanded="'+open+'"><span class="b1"><strong>'+esc(coffeeLabel(h.coffee))+'</strong><span class="rate">'+(r!=null?r.toFixed(1):'–')+'</span></span>'+
-      '<span class="b2">'+meta+'</span><span class="bstats s5">'+stat('Grind',h.grind?h.grinder+' '+h.grind:'')+stat('Water',wt!=null?r1(wt)+' g':'')+stat('Temp',h.temp?h.temp+'°F':'')+stat('Coffee',cw!=null?r1(cw)+' g':'')+stat('Retained',rtn&&rtn.perG!=null?rtn.perG.toFixed(1)+' g/g':'')+stat('Style',h.method)+'</span>'+(open||!h.notes?'':'<span class="b3">'+esc(h.notes)+'</span>')+'<span class="btags">'+tags.join('')+'</span></button>';
+      '<span class="b2">'+meta+'</span><span class="bstats s5">'+stat('Grind',h.grind?h.grinder+' '+h.grind:'')+stat('Water',wt!=null?r1(wt)+' g':'')+stat('Temp',h.temp?h.temp+'°F':'')+stat('Coffee',cw!=null?r1(cw)+' g':'')+stat('Retained',rtn&&rtn.perG!=null?rtn.perG.toFixed(1)+' g/g':'')+stat('Style',h.method)+'</span>'+(valveLine(h)?'<span class="b2">Valve: '+esc(valveLine(h))+'</span>':'')+(open||!h.notes?'':'<span class="b3">'+esc(h.notes)+'</span>')+'<span class="btags">'+tags.join('')+'</span></button>';
     li.querySelector('.bhead').addEventListener('click',function(){bopen[h.id]=!open;renderBrewList()});
     if(open){var body=document.createElement('div');body.className='bbody';
       body.innerHTML='<div class="card">'+cardFor(h)+'</div><div class="acts"><button type="button" class="btn primary small" data-a="again">Brew again</button><button type="button" class="btn small" data-a="edit">Edit</button><button type="button" class="btn small ghost" data-a="del">Delete</button></div>';
