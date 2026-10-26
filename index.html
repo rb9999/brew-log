@@ -347,6 +347,7 @@ a{color:var(--accent);text-underline-offset:2px}
             <div class="chips" id="waters" role="group" aria-labelledby="lbl_water"></div>
             <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-top:6px">
               <div class="field" style="width:150px"><label for="f_temp" class="hint">Water temp</label><div class="unit" data-u="°F"><input type="text" inputmode="numeric" class="num" id="f_temp" aria-label="Water temperature in Fahrenheit" placeholder="195"></div></div>
+              <div class="field" style="width:150px"><label for="f_tempA" class="hint">Actual temp (optional)</label><div class="unit" data-u="°F"><input type="text" inputmode="decimal" class="num" id="f_tempA" aria-label="Measured water temperature in Fahrenheit, optional" placeholder="measured"></div><span class="hint" id="o_tempDiff"></span></div>
               <div class="field" style="width:96px"><label for="f_waterLevel" class="hint">Level (optional)</label><input type="text" inputmode="decimal" class="num" id="f_waterLevel" placeholder="42" maxlength="3" aria-label="Water level rating, optional"></div>
             </div>
           </div>
@@ -616,7 +617,7 @@ function rec(o){var b=blank();for(var k in o)b[k]=o[k];b.ex=true;return b}
 var history=[];
 history.forEach(function(h,i){h.id=i+1});var nid=100;
 
-var keys=['waterLevel','waterT','waterA','coffeeT','coffeeA','grind','temp','yield','dd','rating','notes','tds','pourNote'];
+var keys=['waterLevel','waterT','waterA','coffeeT','coffeeA','grind','temp','tempA','yield','dd','rating','notes','tds','pourNote'];
 
 var coffees=[];
 var grinders=[{code:'GT',name:'Turin H40 V2'}];
@@ -727,7 +728,7 @@ function cardHtml(){
   var r=num(st.rating);
   return '<div class="c-head"><span>'+esc(st.coffee||'Coffee name')+'</span><span>'+esc([st.waterName,st.waterLevel].filter(Boolean).join(' '))+'</span></div>'+
   '<div class="c-method">'+esc(st.method||'Method')+'</div>'+
-  '<div class="c-body"><div class="col"><div>'+esc(w)+'</div><div>'+esc(c)+'</div><div>'+(st.grind?esc(st.grinder)+' '+esc(st.grind):'')+'</div><div>'+(st.temp?'T '+esc(st.temp):'')+'</div></div>'+
+  '<div class="c-body"><div class="col"><div>'+esc(w)+'</div><div>'+esc(c)+'</div><div>'+(st.grind?esc(st.grinder)+' '+esc(st.grind):'')+'</div><div>'+(st.temp?'T '+esc(st.temp)+(st.tempA?' ('+esc(st.tempA)+')':''):'')+'</div></div>'+
   '<div class="col"><div class="c-pours">'+pours+'</div>'+(st.pourNote?'<div class="pcm">'+esc(st.pourNote)+'</div>':'')+(valveLine(st)?'<div class="pcm">'+esc(valveLine(st))+'</div>':'')+'</div></div>'+
   '<div class="c-body"><div class="col"><div>'+(st.yield?'Y '+esc(st.yield):'&nbsp;')+'</div><div>'+(st.dd?'DD '+cardT(parseT(st.dd)):'&nbsp;')+'</div></div><div class="col c-rating"><div>&nbsp;</div><div>'+(r!=null?'R '+r.toFixed(1)+' / 10':'')+'</div></div></div>'+
   '<div class="c-notes">'+esc(st.notes)+(st.notes?'':'&nbsp;')+'</div>'+
@@ -771,6 +772,7 @@ function update(){persist();updateBanner();var scd=schedByName(st.schedule);$('#
   var gr=grinders.filter(function(g){return g.code===st.grinder})[0];
   $('#o_gHint').textContent=(gr&&gr.name?gr.code+' is the '+gr.name+'. ':'')+'';
   var ddT=parseT(st.dd),lastT=null;st.pours.forEach(function(p){var t=parseT(p.t);if(t!=null)lastT=t});
+  var ta=num(st.tempA),tt=num(st.temp);$('#o_tempDiff').textContent=(ta!=null&&tt!=null)?(ta===tt?'Matches target':(ta>tt?'+':'')+r1(ta-tt)+'°F vs target'):'';
   var dh=$('#o_ddHint'),dbad=(ddT!=null&&lastT!=null&&ddT<=lastT);
   dh.textContent=dbad?'Drawdown should be later than your last pour ('+fmtT(lastT)+').':'Drawdown is the total time until the bed has drained and only droplets are left. 250 becomes 2:50.';dh.style.color=dbad?'var(--warn)':'';
   $('#card').innerHTML=cardHtml();
@@ -1065,7 +1067,7 @@ function renderTrends(){
     T('Avg retention',avgRet!=null?avgRet.toFixed(1)+' g/g':'–',avgRet!=null?'water kept per g of coffee':'')+
     T('Best brew',best?num(best.rating).toFixed(1):'–',best?[best.grinder+' '+best.grind,best.temp+'°F',recRatio(best)?recRatio(best)+' ratio':'',best.dd?'DD '+best.dd:''].filter(Boolean).join(' · '):'');
   var few=$('#t_few'),fm=bs.length<4?(bs.length?'Only '+bs.length+(bs.length===1?' brew':' brews')+' match. Patterns get clearer after four or five.':'No brews match these filters.'):(!tf.coffee?'Showing every coffee together. Grind and temp patterns are clearer for one coffee.':'');few.hidden=!fm;few.textContent=fm;
-  function lines(h){return(tf.coffee?[]:[h.coffee]).concat([dateLabel(h.date)+' · '+h.method,[h.grind?h.grinder+' '+h.grind:'',h.temp?h.temp+'°F':''].filter(Boolean).join(' · '),h.dd?'Drawdown '+h.dd:'']).filter(Boolean)}
+  function lines(h){return(tf.coffee?[]:[h.coffee]).concat([dateLabel(h.date)+' · '+h.method,[h.grind?h.grinder+' '+h.grind:'',h.temp?h.temp+'°F'+(h.tempA?' (measured '+h.tempA+')':''):''].filter(Boolean).join(' · '),h.dd?'Drawdown '+h.dd:'']).filter(Boolean)}
   var gr=[],tp=[],dd=[],tm=[],rtn=[];
   bs.forEach(function(h){var r=num(h.rating),g=num(h.grind),t=num(h.temp),d=parseT(h.dd),dt=h.date?new Date(h.date+'T12:00:00').getTime():null;
     if(r!=null&&g!=null)gr.push({x:g,y:r,big:r.toFixed(1),lines:lines(h)});
@@ -1205,7 +1207,7 @@ function renderBrewList(){var list=brewsFiltered(),n=activeCount();
     var rtn=retention(h);
     function stat(l,v){return'<span class="st"><span class="sl">'+l+'</span><span class="sv">'+esc(v||'–')+'</span></span>'}
     li.innerHTML='<button type="button" class="bhead" aria-expanded="'+open+'"><span class="b1"><strong>'+esc(coffeeLabel(h.coffee))+'</strong><span class="rate">'+(r!=null?r.toFixed(1):'–')+'</span></span>'+
-      '<span class="b2">'+meta+'</span><span class="bstats s5">'+stat('Grind',h.grind?h.grinder+' '+h.grind:'')+stat('Water',wt!=null?r1(wt)+' g':'')+stat('Temp',h.temp?h.temp+'°F':'')+stat('Coffee',cw!=null?r1(cw)+' g':'')+stat('Retained',rtn&&rtn.perG!=null?rtn.perG.toFixed(1)+' g/g':'')+stat('Style',h.method)+'</span>'+(valveLine(h)?'<span class="b2">Valve: '+esc(valveLine(h))+'</span>':'')+(open||!h.notes?'':'<span class="b3">'+esc(h.notes)+'</span>')+'<span class="btags">'+tags.join('')+'</span></button>';
+      '<span class="b2">'+meta+'</span><span class="bstats s5">'+stat('Grind',h.grind?h.grinder+' '+h.grind:'')+stat('Water',wt!=null?r1(wt)+' g':'')+stat('Temp',h.temp?h.temp+(h.tempA?' ('+h.tempA+')':'')+'°F':'')+stat('Coffee',cw!=null?r1(cw)+' g':'')+stat('Retained',rtn&&rtn.perG!=null?rtn.perG.toFixed(1)+' g/g':'')+stat('Style',h.method)+'</span>'+(valveLine(h)?'<span class="b2">Valve: '+esc(valveLine(h))+'</span>':'')+(open||!h.notes?'':'<span class="b3">'+esc(h.notes)+'</span>')+'<span class="btags">'+tags.join('')+'</span></button>';
     li.querySelector('.bhead').addEventListener('click',function(){bopen[h.id]=!open;renderBrewList()});
     if(open){var body=document.createElement('div');body.className='bbody';
       body.innerHTML='<div class="card">'+cardFor(h)+'</div><div class="acts"><button type="button" class="btn primary small" data-a="again">Brew again</button><button type="button" class="btn small" data-a="edit">Edit</button><button type="button" class="btn small ghost" data-a="del">Delete</button></div>';
