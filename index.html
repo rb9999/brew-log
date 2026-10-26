@@ -291,6 +291,10 @@ footer.data{border-top:0;margin-top:32px}
 .crow{border-top-color:color-mix(in srgb,var(--ink) 10%,transparent)}
 a{color:var(--accent);text-underline-offset:2px}
 .btn:disabled{opacity:.55;cursor:default;filter:saturate(.6)}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:.5;font-style:italic;font-weight:400}
+input[type].opt,textarea.opt,select.opt{background:color-mix(in srgb,var(--fieldbg),#8d8aa5 24%)}
+.optnote{margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.optnote i{display:inline-block;width:34px;height:16px;border-radius:8px;background:color-mix(in srgb,var(--fieldbg),#8d8aa5 24%);border:1px solid var(--line)}
 </style>
 
 
@@ -313,6 +317,7 @@ a{color:var(--accent);text-underline-offset:2px}
   <section id="panel-log">
     <div class="grid">
       <form class="form" id="form" autocomplete="off">
+        <p class="hint optnote"><i></i> Shaded boxes are optional. Light italic text is just an example.</p>
         <div id="stateBar" role="status" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--line);border-radius:10px"><span id="stateMsg"></span><button type="button" class="btn small" id="stateBtn"></button></div>
         <div id="editBar" hidden style="display:none;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border:1px solid var(--viz,#888);border-radius:10px"><strong id="editLbl">Editing brew</strong><button type="button" class="btn small" id="editCancel">Cancel edit</button></div>
 
@@ -632,6 +637,8 @@ function renderGrinders(){persist();var s=$('#f_grinder');
   s.innerHTML=grinders.map(function(g){return'<option value="'+esc(g.code)+'">'+esc(g.code)+'</option>'}).join('')+'<option value="__add">+ Add grinder</option>';
   if(!grinders.some(function(g){return g.code===st.grinder}))st.grinder=grinders[0].code;s.value=st.grinder}
 
+(function markOptional(){Array.prototype.forEach.call(document.querySelectorAll('label'),function(l){if(!/optional/i.test(l.textContent))return;var f=l.closest('.field');if(f)Array.prototype.forEach.call(f.querySelectorAll('input,textarea,select'),function(e){e.classList.add('opt')})});
+  ['f_coffeeA','f_waterA','f_tempA','f_yield','f_tds'].forEach(function(id){var e=document.getElementById(id);if(e)e.classList.add('opt')})})();
 function syncInputs(){renderFilters();keys.forEach(function(k){var el=$('#f_'+k);if(el)el.value=st[k]||''});
   renderCoffees();renderGrinders();renderChips();renderPours();renderScheduleSel();update()}
 
