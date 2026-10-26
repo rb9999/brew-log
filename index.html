@@ -295,6 +295,8 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.5;font-styl
 input[type].opt,textarea.opt,select.opt{background:color-mix(in srgb,var(--fieldbg),#8d8aa5 24%)}
 .optnote{margin:0 0 10px;display:flex;align-items:center;gap:8px}
 .optnote i{display:inline-block;width:34px;height:16px;border-radius:8px;background:color-mix(in srgb,var(--fieldbg),#8d8aa5 24%);border:1px solid var(--line)}
+.tbest{margin:2px 0 6px;font-weight:600;font-size:14px;color:var(--accent)}
+.tbest small{display:block;font-weight:400;color:var(--muted);font-size:12px}
 </style>
 
 
@@ -540,9 +542,9 @@ input[type].opt,textarea.opt,select.opt{background:color-mix(in srgb,var(--field
         <p class="tnone" id="t_few" hidden></p>
         <div class="tcard" style="margin-bottom:14px"><h3>By roast</h3><p class="tsub">Average rating and number of brews for each roast. Follows the coffee and method filters.</p><div id="t_roasts" style="margin-top:8px"></div></div>
         <div class="tgrid">
-          <div class="tcard"><h3>Rating by grind setting</h3><p class="tsub">One dot per brew. Higher is better.</p><div class="tchart" id="ch_grind"></div></div>
-          <div class="tcard"><h3>Rating by water temp</h3><p class="tsub">One dot per brew.</p><div class="tchart" id="ch_temp"></div></div>
-          <div class="tcard"><h3>Drawdown time by grind setting</h3><p class="tsub">Longer drawdown means more extraction.</p><div class="tchart" id="ch_dd"></div></div>
+          <div class="tcard"><h3>Rating by grind setting</h3><p class="tbest" id="tb_grind"></p><p class="tsub">One dot per brew. Higher is better.</p><div class="tchart" id="ch_grind"></div></div>
+          <div class="tcard"><h3>Rating by water temp</h3><p class="tbest" id="tb_temp"></p><p class="tsub">One dot per brew.</p><div class="tchart" id="ch_temp"></div></div>
+          <div class="tcard"><h3>Drawdown time by grind setting</h3><p class="tbest" id="tb_dd"></p><p class="tsub">Longer drawdown means more extraction.</p><div class="tchart" id="ch_dd"></div></div>
           <div class="tcard"><h3>Rating over time</h3><p class="tsub">Are your brews getting better?</p><div class="tchart" id="ch_time"></div></div>
           <div class="tcard"><h3>Water retention over time</h3><p class="tsub">Grams of water the grounds keep per gram of coffee (water poured minus yield, divided by dose). Steady is good.</p><div class="tchart" id="ch_ret"></div></div>
         </div>
@@ -1082,6 +1084,19 @@ function renderTrends(){
     if(g!=null&&d!=null)dd.push({x:g,y:d,big:fmtMS(d),lines:lines(h)});
     var rr0=retention(h);if(rr0&&rr0.perG!=null&&dt!=null)rtn.push({x:dt,y:rr0.perG,big:rr0.perG.toFixed(1)+' g/g',lines:lines(h).concat([r1(rr0.pct)+'% retained · '+r1(rr0.g)+' g'])});
     if(r!=null&&dt!=null)tm.push({x:dt,y:r,big:r.toFixed(1),lines:lines(h)})});
+  /* sweet spot: Gaussian-weighted average rating around each setting, so one lucky brew cannot win on its own */
+  function sweet(pts,minBw,fmt,label){var n=pts.length;if(n<4)return'<small>Needs at least 4 rated brews with a '+label+' (has '+n+').</small>';
+    var xs=pts.map(function(p){return p.x}),lo=Math.min.apply(null,xs),hi=Math.max.apply(null,xs);if(hi===lo)return'<small>All your brews used the same '+label+'.</small>';
+    var bw=Math.max((hi-lo)/5,minBw),best=null;
+    for(var i=0;i<=40;i++){var c=lo+(hi-lo)*i/40,sw=0,sr=0,near=0;
+      pts.forEach(function(p){var w=Math.exp(-0.5*Math.pow((p.x-c)/bw,2));sw+=w;sr+=w*p.y;if(Math.abs(p.x-c)<=bw)near++});
+      if(sw>=2&&(!best||sr/sw>best.a+1e-9))best={x:c,a:sr/sw,near:near}}
+    if(!best)return'<small>Not enough brews close together to find a pattern yet.</small>';
+    return'Sweet spot: '+fmt(best.x)+'<small>Highest weighted rating ('+best.a.toFixed(1)+') across '+best.near+' nearby '+(best.near===1?'brew':'brews')+'. Brews closer to this setting count more.</small>'}
+  var ddr=[];bs.forEach(function(h){var r=num(h.rating),d=parseT(h.dd);if(r!=null&&d!=null)ddr.push({x:d,y:r})});
+  $('#tb_grind').innerHTML=sweet(gr,0.3,function(x){return(Math.round(x*10)/10).toString()},'grind setting');
+  $('#tb_temp').innerHTML=sweet(tp,2,function(x){return Math.round(x)+'°F'},'water temp');
+  $('#tb_dd').innerHTML=sweet(ddr,10,function(x){return fmtMS(Math.round(x))},'drawdown time');
   var yR={min:1,max:10.5,ticks:[2,4,6,8,10]},rf=function(t){return t.toFixed(1)},gf=function(t){return t%1?t.toFixed(1):String(t)};
   drawChart($('#ch_grind'),{title:'Rating by grind setting',pts:gr,xd:gr.length?niceDomain(gr.map(function(p){return p.x}),[0.1,0.2,0.5,1,2],1.5):null,yd:yR,lfmt:rf,xfmt:gf,yfmt:function(t){return t%1?t.toFixed(1):String(t)},xTitle:'Grind setting',yTitle:'Rating',labels:bestIdx(gr),none:'No brews with a grind setting and a rating yet.'});
   drawChart($('#ch_temp'),{title:'Rating by water temp',pts:tp,xd:tp.length?niceDomain(tp.map(function(p){return p.x}),[1,2,5,10],8):null,yd:yR,lfmt:rf,xfmt:function(t){return t+'°'},yfmt:function(t){return t%1?t.toFixed(1):String(t)},xTitle:'Water temp (°F)',yTitle:'Rating',labels:bestIdx(tp),none:'No brews with a water temp and a rating yet.'});
