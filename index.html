@@ -1087,12 +1087,14 @@ function renderTrends(){
   /* sweet spot: Gaussian-weighted average rating around each setting, so one lucky brew cannot win on its own */
   function sweet(pts,minBw,fmt,label){var n=pts.length;if(n<4)return'<small>Needs at least 4 rated brews with a '+label+' (has '+n+').</small>';
     var xs=pts.map(function(p){return p.x}),lo=Math.min.apply(null,xs),hi=Math.max.apply(null,xs);if(hi===lo)return'<small>All your brews used the same '+label+'.</small>';
-    var bw=Math.max((hi-lo)/5,minBw),best=null;
-    for(var i=0;i<=40;i++){var c=lo+(hi-lo)*i/40,sw=0,sr=0,near=0;
-      pts.forEach(function(p){var w=Math.exp(-0.5*Math.pow((p.x-c)/bw,2));sw+=w;sr+=w*p.y;if(Math.abs(p.x-c)<=bw)near++});
-      if(sw>=2&&(!best||sr/sw>best.a+1e-9))best={x:c,a:sr/sw,near:near}}
-    if(!best)return'<small>Not enough brews close together to find a pattern yet.</small>';
-    return'Sweet spot: '+fmt(best.x)+'<small>Highest weighted rating ('+best.a.toFixed(1)+') across '+best.near+' nearby '+(best.near===1?'brew':'brews')+'. Brews closer to this setting count more.</small>'}
+    var bw=Math.max((hi-lo)/5,minBw),best=null,mu=pts.reduce(function(a,p){return a+p.y},0)/n;
+    for(var i=0;i<=40;i++){var c=lo+(hi-lo)*i/40,sw=0,sr=0,near=0,left=0,right=0,ny=0;
+      pts.forEach(function(p){var w=Math.exp(-0.5*Math.pow((p.x-c)/bw,2));sw+=w;sr+=w*p.y;if(Math.abs(p.x-c)<=bw){near++;ny+=p.y;if(p.x<c)left++;else if(p.x>c)right++}});
+      /* a setting only counts if brews sit on both sides of it (no picking the edge of your range) and enough brews are close; ratings are pulled toward your overall average so thin spots cannot win */
+      if(sw<3||near<3||!left||!right)continue;var a=(sr+3*mu)/(sw+3);
+      if(!best||a>best.a+1e-9)best={x:c,a:a,near:near,avg:ny/near}}
+    if(!best)return'<small>Not enough brews on both sides of any setting yet to name a sweet spot.</small>';
+    return'Sweet spot: '+fmt(best.x)+'<small>The '+best.near+' brews within '+fmt(best.x-bw)+' to '+fmt(best.x+bw)+' averaged '+best.avg.toFixed(1)+' (all brews: '+mu.toFixed(1)+'). Brews closer to the middle count more, and thin spots are pulled toward your overall average.</small>'}
   var ddr=[];bs.forEach(function(h){var r=num(h.rating),d=parseT(h.dd);if(r!=null&&d!=null)ddr.push({x:d,y:r})});
   $('#tb_grind').innerHTML=sweet(gr,0.3,function(x){return(Math.round(x*10)/10).toString()},'grind setting');
   $('#tb_temp').innerHTML=sweet(tp,2,function(x){return Math.round(x)+'°F'},'water temp');
