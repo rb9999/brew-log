@@ -297,6 +297,8 @@ input[type].opt,textarea.opt,select.opt{background:color-mix(in srgb,var(--field
 .optnote i{display:inline-block;width:34px;height:16px;border-radius:8px;background:color-mix(in srgb,var(--fieldbg),#8d8aa5 24%);border:1px solid var(--line)}
 .tbest{margin:2px 0 6px;font-weight:600;font-size:14px;color:var(--accent)}
 .tbest small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.vsweet{stroke:var(--accent);stroke-width:1.5;stroke-dasharray:5 4;opacity:.8}
+.vsw{fill:var(--accent)}
 </style>
 
 
@@ -1039,6 +1041,8 @@ function drawChart(host,cfg){
   xd.ticks.forEach(function(t){g+='<text class="vt" x="'+X(t)+'" y="'+(m.t+ih+18)+'" text-anchor="middle">'+esc(cfg.xfmt(t))+'</text>'});
   g+='<text class="vt" x="'+(m.l+iw/2)+'" y="'+(H-6)+'" text-anchor="middle">'+esc(cfg.xTitle)+'</text><text class="vt" x="'+m.l+'" y="12">'+esc(cfg.yTitle)+'</text>';
   var pts=cfg.pts;
+  if(cfg.vline!=null&&cfg.vline>=xd.min&&cfg.vline<=xd.max){var vx=X(cfg.vline);g+='<line class="vsweet" x1="'+vx+'" x2="'+vx+'" y1="'+m.t+'" y2="'+(m.t+ih)+'"/><text class="vt vtb vsw" x="'+vx+'" y="'+(m.t-12)+'" text-anchor="middle">sweet spot '+esc(cfg.vlabel)+'</text>'}
+  if(cfg.hline!=null&&cfg.hline>=yd.min&&cfg.hline<=yd.max){var hy=Y(cfg.hline);g+='<line class="vsweet" x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+hy+'" y2="'+hy+'"/><text class="vt vtb vsw" x="'+(W-m.r)+'" y="'+(hy-5)+'" text-anchor="end">sweet spot '+esc(cfg.hlabel)+'</text>'}
   if(cfg.line){var sp=pts.slice().sort(function(a,b){return a.x-b.x});g+='<polyline class="vl" points="'+sp.map(function(p){return X(p.x)+','+Y(p.y)}).join(' ')+'"/>'}
   pts.forEach(function(p){g+='<circle class="vs" cx="'+X(p.x)+'" cy="'+Y(p.y)+'" r="5"/>'});
   cfg.labels.forEach(function(i){var p=pts[i];g+='<circle class="vr" cx="'+X(p.x)+'" cy="'+Y(p.y)+'" r="9"/><text class="vt vtb" x="'+X(p.x)+'" y="'+(Y(p.y)-15)+'" text-anchor="middle">'+esc((cfg.lfmt||cfg.yfmt)(p.y))+'</text>'});
@@ -1085,7 +1089,8 @@ function renderTrends(){
     var rr0=retention(h);if(rr0&&rr0.perG!=null&&dt!=null)rtn.push({x:dt,y:rr0.perG,big:rr0.perG.toFixed(1)+' g/g',lines:lines(h).concat([r1(rr0.pct)+'% retained · '+r1(rr0.g)+' g'])});
     if(r!=null&&dt!=null)tm.push({x:dt,y:r,big:r.toFixed(1),lines:lines(h)})});
   /* sweet spot: Gaussian-weighted average rating around each setting, so one lucky brew cannot win on its own */
-  function sweet(pts,minBw,fmt,label){var n=pts.length;if(n<4)return'<small>Needs at least 4 rated brews with a '+label+' (has '+n+').</small>';
+  function sweet(){var r=sweet0.apply(null,arguments);return typeof r==='string'?{h:r}:r}
+  function sweet0(pts,minBw,fmt,label){var n=pts.length;if(n<4)return'<small>Needs at least 4 rated brews with a '+label+' (has '+n+').</small>';
     var xs=pts.map(function(p){return p.x}),lo=Math.min.apply(null,xs),hi=Math.max.apply(null,xs);if(hi===lo)return'<small>All your brews used the same '+label+'.</small>';
     var bw=Math.max((hi-lo)/5,minBw),best=null,mu=pts.reduce(function(a,p){return a+p.y},0)/n;
     for(var i=0;i<=40;i++){var c=lo+(hi-lo)*i/40,sw=0,sr=0,near=0,left=0,right=0,ny=0;
@@ -1094,15 +1099,14 @@ function renderTrends(){
       if(sw<3||near<3||!left||!right)continue;var a=(sr+3*mu)/(sw+3);
       if(!best||a>best.a+1e-9)best={x:c,a:a,near:near,avg:ny/near}}
     if(!best)return'<small>Not enough brews on both sides of any setting yet to name a sweet spot.</small>';
-    return'Sweet spot: '+fmt(best.x)+'<small>The '+best.near+' brews within '+fmt(best.x-bw)+' to '+fmt(best.x+bw)+' averaged '+best.avg.toFixed(1)+' (all brews: '+mu.toFixed(1)+'). Brews closer to the middle count more, and thin spots are pulled toward your overall average.</small>'}
+    return{x:best.x,h:'Sweet spot: '+fmt(best.x)+'<small>The '+best.near+' brews within '+fmt(best.x-bw)+' to '+fmt(best.x+bw)+' averaged '+best.avg.toFixed(1)+' (all brews: '+mu.toFixed(1)+'). Brews closer to the middle count more, and thin spots are pulled toward your overall average.</small>'}}
   var ddr=[];bs.forEach(function(h){var r=num(h.rating),d=parseT(h.dd);if(r!=null&&d!=null)ddr.push({x:d,y:r})});
-  $('#tb_grind').innerHTML=sweet(gr,0.3,function(x){return(Math.round(x*10)/10).toString()},'grind setting');
-  $('#tb_temp').innerHTML=sweet(tp,2,function(x){return Math.round(x)+'°F'},'water temp');
-  $('#tb_dd').innerHTML=sweet(ddr,10,function(x){return fmtMS(Math.round(x))},'drawdown time');
+  var sgG=sweet(gr,0.3,function(x){return(Math.round(x*10)/10).toString()},'grind setting'),sgT=sweet(tp,2,function(x){return Math.round(x)+'°F'},'water temp'),sgD=sweet(ddr,10,function(x){return fmtMS(Math.round(x))},'drawdown time');
+  $('#tb_grind').innerHTML=sgG.h;$('#tb_temp').innerHTML=sgT.h;$('#tb_dd').innerHTML=sgD.h;
   var yR={min:1,max:10.5,ticks:[2,4,6,8,10]},rf=function(t){return t.toFixed(1)},gf=function(t){return t%1?t.toFixed(1):String(t)};
-  drawChart($('#ch_grind'),{title:'Rating by grind setting',pts:gr,xd:gr.length?niceDomain(gr.map(function(p){return p.x}),[0.1,0.2,0.5,1,2],1.5):null,yd:yR,lfmt:rf,xfmt:gf,yfmt:function(t){return t%1?t.toFixed(1):String(t)},xTitle:'Grind setting',yTitle:'Rating',labels:bestIdx(gr),none:'No brews with a grind setting and a rating yet.'});
-  drawChart($('#ch_temp'),{title:'Rating by water temp',pts:tp,xd:tp.length?niceDomain(tp.map(function(p){return p.x}),[1,2,5,10],8):null,yd:yR,lfmt:rf,xfmt:function(t){return t+'°'},yfmt:function(t){return t%1?t.toFixed(1):String(t)},xTitle:'Water temp (°F)',yTitle:'Rating',labels:bestIdx(tp),none:'No brews with a water temp and a rating yet.'});
-  drawChart($('#ch_dd'),{title:'Drawdown time by grind setting',pts:dd,xd:dd.length?niceDomain(dd.map(function(p){return p.x}),[0.1,0.2,0.5,1,2],1.5):null,yd:dd.length?niceDomain(dd.map(function(p){return p.y}),[10,15,30,60,120],60):null,xfmt:gf,yfmt:fmtMS,xTitle:'Grind setting',yTitle:'Drawdown',labels:[],none:'No brews with a grind setting and a drawdown time yet.'});
+  drawChart($('#ch_grind'),{title:'Rating by grind setting',pts:gr,xd:gr.length?niceDomain(gr.map(function(p){return p.x}),[0.1,0.2,0.5,1,2],1.5):null,yd:yR,lfmt:rf,xfmt:gf,yfmt:function(t){return t%1?t.toFixed(1):String(t)},xTitle:'Grind setting',yTitle:'Rating',vline:sgG.x,vlabel:gf(Math.round(sgG.x*10)/10),labels:bestIdx(gr),none:'No brews with a grind setting and a rating yet.'});
+  drawChart($('#ch_temp'),{title:'Rating by water temp',pts:tp,xd:tp.length?niceDomain(tp.map(function(p){return p.x}),[1,2,5,10],8):null,yd:yR,lfmt:rf,xfmt:function(t){return t+'°'},yfmt:function(t){return t%1?t.toFixed(1):String(t)},xTitle:'Water temp (°F)',yTitle:'Rating',vline:sgT.x,vlabel:Math.round(sgT.x)+'°',labels:bestIdx(tp),none:'No brews with a water temp and a rating yet.'});
+  drawChart($('#ch_dd'),{title:'Drawdown time by grind setting',pts:dd,xd:dd.length?niceDomain(dd.map(function(p){return p.x}),[0.1,0.2,0.5,1,2],1.5):null,yd:dd.length?niceDomain(dd.map(function(p){return p.y}),[10,15,30,60,120],60):null,xfmt:gf,yfmt:fmtMS,xTitle:'Grind setting',yTitle:'Drawdown',hline:sgD.x,hlabel:sgD.x!=null?fmtMS(Math.round(sgD.x)):'',labels:[],none:'No brews with a grind setting and a drawdown time yet.'});
   drawChart($('#ch_time'),{title:'Rating over time',pts:tm,line:true,xd:tm.length?dateDomain(tm.map(function(p){return p.x})):null,yd:yR,lfmt:rf,xfmt:fmtDay,yfmt:function(t){return t%1?t.toFixed(1):String(t)},xTitle:'Brew date',yTitle:'Rating',labels:tm.length?[tm.indexOf(tm.slice().sort(function(a,b){return b.x-a.x})[0])]:[],none:'No rated brews with a date yet.'});
   drawChart($('#ch_ret'),{title:'Water retention over time',pts:rtn,line:true,xd:rtn.length?dateDomain(rtn.map(function(p){return p.x})):null,yd:rtn.length?niceDomain(rtn.map(function(p){return p.y}),[0.1,0.2,0.5,1],1):null,lfmt:function(t){return t.toFixed(1)},xfmt:fmtDay,yfmt:function(t){return t.toFixed(1)},xTitle:'Brew date',yTitle:'g water kept per g coffee',labels:[],none:'No brews with a yield yet. Enter the yield (grams in the cup) to see retention.'});
   var rb=history.filter(function(h){return(!tf.coffee||h.coffee===tf.coffee)&&(!tf.method||h.method===tf.method)}),rr=$('#t_roasts');rr.innerHTML='';
