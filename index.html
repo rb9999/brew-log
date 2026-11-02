@@ -299,6 +299,31 @@ input[type].opt,textarea.opt,select.opt{background:color-mix(in srgb,var(--field
 .tbest small{display:block;font-weight:400;color:var(--muted);font-size:12px}
 .vsweet{stroke:var(--accent);stroke-width:1.5;stroke-dasharray:5 4;opacity:.8}
 .vsw{fill:var(--accent)}
+/* ===== Look: bold game-card style (inspired by NYT Games). Saturated flat cards, heavy serif titles, black ink. ===== */
+:root{--bg:#FAFAFA;--ink:#121212;--muted:#555;--accent:#121212;--accent-ink:#FFFFFF;--accent-soft:#ECECEC;--viz:#121212;--card:#F0F0F0;--line:#E2E2E2;--fieldbg:#EFEFEF;--chipbg:#EFEFEF;--bar:#121212;--bar-ink:#E8E8E8;--cta:#F7DA21;--cta-ink:#121212;
+  --t1:#B5E352;--d1:#121212;--t2:#FB9B00;--d2:#121212;--t3:#93B8F6;--d3:#121212;--t4:#DCA6D4;--d4:#121212;--sfield:rgba(255,255,255,.92);
+  --font-display:"Chunk","Rockwell Extra Bold","Rockwell","Georgia","Times New Roman",serif}
+.brand,fieldset.sec>legend,.tcard h3,.recent h2,.ih,.tile .tv,.rate-lbl{font-family:var(--font-display)!important;font-weight:900!important;letter-spacing:-.01em!important}
+.brand{font-size:30px}
+fieldset.sec{border-radius:24px;padding:24px 20px}
+fieldset.sec>legend{font-size:32px;line-height:1.05;margin-bottom:2px}
+fieldset.sec>legend::after{display:block;font-family:var(--font-ui);font-weight:400;font-size:15px;letter-spacing:0;color:rgba(18,18,18,.78);margin-top:4px}
+fieldset.sec:nth-of-type(1)>legend::after{content:"What you are brewing, and how."}
+fieldset.sec:nth-of-type(2)>legend::after{content:"Grind setting and weights."}
+fieldset.sec:nth-of-type(3)>legend::after{content:"When and how much for each pour."}
+fieldset.sec:nth-of-type(4)>legend::after{content:"How the cup turned out."}
+fieldset.sec .hint,fieldset.sec small,fieldset.sec .status{color:rgba(18,18,18,.75)}
+fieldset.sec .field>label,fieldset.sec .lbl{font-weight:700}
+.btn.small,fieldset.sec .btn.small,.btn.ghost{box-shadow:0 3px 0 -1px rgba(0,0,0,.14),0 6px 0 -2px rgba(0,0,0,.07);margin-bottom:7px}
+.btn.primary,#saveBtn{box-shadow:none}
+nav.tabs button{border-radius:999px;font-weight:600}
+.tile{border-radius:24px}.tile .tv{font-size:34px}
+.tcard,.hist li,.bi,.filters,.mlist li{border-radius:24px}
+.tcard h3{font-size:22px}
+.recent h2,.ih{font-size:24px!important}
+.card{border-radius:12px}
+.tag,.rate{background:#121212;color:#fff}
+.vsweet{stroke:#121212}.vsw{fill:#121212}.tbest{color:#121212}
 </style>
 
 
