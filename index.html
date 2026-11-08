@@ -913,7 +913,7 @@ $('#form').addEventListener('submit',function(e){e.preventDefault();
   var saved=JSON.parse(JSON.stringify(st));saved.id=nid++;saved.bag=(coffeeRec(saved.coffee)||{}).bags||1;saved.level=(coffeeRec(saved.coffee)||{}).level||'';saved.date=new Date().toISOString().slice(0,10);history.unshift(saved);
   st=blank();startedFrom='';
   syncInputs();renderHist();window.scrollTo({top:0,behavior:'smooth'});toast('Saved. The form is clear and ready for your next brew.')});
-$('#clearBtn').addEventListener('click',function(){st=blank();startedFrom='';syncInputs();toast('Form cleared.')});
+$('#clearBtn').addEventListener('click',function(){if(!confirm('Clear everything you have entered on this form? This cannot be undone.'))return;st=blank();startedFrom='';syncInputs();toast('Form cleared.')});
 
 var editId=null,editDraft=null;
 function setEditUI(on,h){updateBanner();$('#editBar').hidden=!on;$('#editBar').style.display=on?'flex':'none';$('#saveBtn').textContent=on?'Save changes':'Save brew';$('#clearBtn').hidden=on;if(on)$('#editLbl').textContent='Editing: '+h.coffee+(h.date?' · '+dateLabel(h.date):'')}
