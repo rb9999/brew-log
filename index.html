@@ -324,6 +324,7 @@ nav.tabs button{border-radius:999px;font-weight:600}
 .card{border-radius:12px}
 .tag,.rate{background:#121212;color:#fff}
 .vsweet{stroke:#121212}.vsw{fill:#121212}.tbest{color:#121212}
+#panel-dose fieldset.sec>legend::after{content:"Fill in all three."}
 </style>
 
 
@@ -340,6 +341,7 @@ nav.tabs button{border-radius:999px;font-weight:600}
       <button role="tab" id="tab-trends" aria-selected="false" data-tab="trends">Trends</button>
       <button role="tab" id="tab-ideas" aria-selected="false" data-tab="ideas">Ideas</button>
       <button role="tab" id="tab-notes" aria-selected="false" data-tab="notes">Notes</button>
+      <button role="tab" id="tab-dose" aria-selected="false" data-tab="dose">Dose Calc</button>
     </nav>
   </header>
 
@@ -588,6 +590,23 @@ nav.tabs button{border-radius:999px;font-weight:600}
       </div>
       <div class="bbar" style="margin-top:10px"><span class="b-count" id="n_count"></span></div>
       <ul class="blist" id="n_list"></ul>
+    </div>
+  </section>
+  <section id="panel-dose" hidden>
+    <div class="brews">
+      <h2 class="ih" style="margin-top:6px">Dose calculator</h2>
+      <p class="tsub" style="margin-bottom:10px">Say how much finished coffee you want, and get the coffee and water to start with.</p>
+      <fieldset class="sec" style="margin-bottom:14px"><legend>What you want</legend>
+        <div class="field"><label for="dc_f" class="lbl">Finished coffee</label><div class="unit" data-u="g"><input type="text" inputmode="decimal" class="num" id="dc_f" placeholder="350" aria-label="Grams of finished coffee wanted"></div></div>
+        <div class="field"><label for="dc_r" class="lbl">Ratio (coffee : water)</label><div class="unit" data-u="1 :"><input type="text" inputmode="decimal" class="num" id="dc_r" placeholder="16" aria-label="Water per gram of coffee, as 1 to this number"></div><span class="hint">1 g of coffee to this many grams of water.</span></div>
+        <div class="field"><label for="dc_k" class="lbl">Water retained</label><div class="unit" data-u="g/g"><input type="text" inputmode="decimal" class="num" id="dc_k" placeholder="2.3" aria-label="Grams of water retained per gram of coffee"></div><span class="hint" id="dc_kh"></span></div>
+      </fieldset>
+      <div class="tiles" id="dc_out" hidden>
+        <div class="tile"><div class="tl">Coffee</div><div class="tv" id="dc_c"></div></div>
+        <div class="tile"><div class="tl">Water</div><div class="tv" id="dc_w"></div></div>
+      </div>
+      <p class="tsub" id="dc_msg" style="margin:10px 0"></p>
+      <div class="acts"><button type="button" class="btn primary small" id="dc_use" hidden>Use these in a new brew</button></div>
     </div>
   </section>
   <section id="panel-ideas" hidden>
@@ -1034,7 +1053,22 @@ function renderNotes(){var ul=$('#n_list');ul.innerHTML='';$('#n_count').textCon
 $('#n_add').addEventListener('click',function(){var t=$('#n_text').value.trim();if(!t){toast('Type a note first.');return}
   notes.push({id:nid++,at:Date.now(),text:t});$('#n_text').value='';persist();renderNotes();toast('Note saved.')});
 $('#n_text').addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();$('#n_add').click()}});
-function showTab(n){Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'),function(x){x.setAttribute('aria-selected',x.dataset.tab===n?'true':'false');$('#panel-'+x.dataset.tab).hidden=(x.dataset.tab!==n)});if(n==='brews')renderBrews();if(n==='coffees')renderCoffeeCards();if(n==='pours')renderSchedules();if(n==='trends')renderTrends();if(n==='ideas')renderIdeas();if(n==='notes')renderNotes()}
+var dcAmt=null;
+function dcCalc(){var F=num($('#dc_f').value),R=num($('#dc_r').value),K=num($('#dc_k').value),m=$('#dc_msg'),ok=false;dcAmt=null;
+  try{localStorage.setItem('brewlog.dc',JSON.stringify({f:$('#dc_f').value,r:$('#dc_r').value,k:$('#dc_k').value}))}catch(e){}
+  if(F==null||R==null||K==null||F<=0){m.textContent='Fill in all three boxes.'}
+  else if(R<=K){m.textContent='The ratio ('+r1(R)+') has to be bigger than the water retained ('+r1(K)+' g/g), or no coffee would come out.'}
+  else{var C=F/(R-K),W=C*R,Cr=Math.round(C*10)/10,Wr=Math.round(W),fin=Wr-K*Cr;ok=true;dcAmt={c:Cr,w:Wr};
+    $('#dc_c').textContent=Cr.toFixed(1)+' g';$('#dc_w').textContent=Wr+' g';
+    m.textContent='Exact: '+C.toFixed(2)+' g coffee and '+W.toFixed(1)+' g water. With the rounded amounts you would get about '+Math.round(fin)+' g finished ('+r1(Wr/Cr)+' ratio).'}
+  $('#dc_out').hidden=!ok;$('#dc_use').hidden=!ok}
+function dcInit(){var sv={};try{sv=JSON.parse(localStorage.getItem('brewlog.dc')||'{}')||{}}catch(e){}
+  var ks=history.map(function(h){var r=retention(h);return r&&r.perG!=null?r.perG:null}).filter(function(x){return x!=null}),avg=ks.length?ks.reduce(function(a,b){return a+b},0)/ks.length:null;
+  $('#dc_kh').textContent=avg!=null?'Your brews average '+avg.toFixed(1)+' g/g.':'Grams of water the grounds hold per gram of coffee.';
+  if(!$('#dc_f').value)$('#dc_f').value=sv.f||'';if(!$('#dc_r').value)$('#dc_r').value=sv.r||'';if(!$('#dc_k').value)$('#dc_k').value=sv.k||(avg!=null?avg.toFixed(1):'');dcCalc()}
+['#dc_f','#dc_r','#dc_k'].forEach(function(id){$(id).addEventListener('input',dcCalc)});
+$('#dc_use').addEventListener('click',function(){if(!dcAmt)return;st.coffeeT=String(dcAmt.c);st.waterT=String(dcAmt.w);showTab('log');syncInputs();update();toast('Coffee and water filled in on Log a brew.')});
+function showTab(n){Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'),function(x){x.setAttribute('aria-selected',x.dataset.tab===n?'true':'false');$('#panel-'+x.dataset.tab).hidden=(x.dataset.tab!==n)});if(n==='brews')renderBrews();if(n==='coffees')renderCoffeeCards();if(n==='pours')renderSchedules();if(n==='trends')renderTrends();if(n==='ideas')renderIdeas();if(n==='notes')renderNotes();if(n==='dose')dcInit()}
 Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'),function(b){b.addEventListener('click',function(){showTab(b.dataset.tab)})});
 $('#seeAll').addEventListener('click',function(){showTab('brews');window.scrollTo({top:0})});
 
