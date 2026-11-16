@@ -1026,7 +1026,7 @@ $('#rmExamples').addEventListener('click',function(){var n=history.filter(functi
   toast('Removed '+n+' example '+(n===1?'brew':'brews')+'.',function(){history.length=0;before.forEach(function(h){history.push(h)});renderHist();if(!$('#panel-brews').hidden)renderBrewList()})});
 function startFrom(h){if(editId!=null)endEdit();var b=blank();
   ['coffee','method','waterName','waterLevel','waterT','coffeeT','grinder','grind','temp','filter'].forEach(function(k){if(h[k]!=null&&h[k]!=='')b[k]=h[k]});
-  b.tech=(h.tech||[]).slice();
+  b.tech=(h.tech||[]).slice();if(h.schedule&&schedByName(h.schedule))b.schedule=h.schedule;
   b.pours=(h.pours&&h.pours.length)?h.pours.map(function(p){var o={t:p.t,up:p.up};if(p.valve){o.valve=p.valve;if(p.ot)o.ot=p.ot}return o}):[{t:'0:00',up:''}];
   if(!coffeeRec(h.coffee))coffees.push({name:h.coffee,roaster:'',roast:''});
   st=b;startedFrom='Started from '+coffeeLabel(h.coffee)+(h.date?' · '+dateLabel(h.date):'')+'. Results are blank.';syncInputs();showTab('log');toast('Started from '+h.coffee+'. Results are blank.');window.scrollTo({top:0,behavior:'smooth'})}
