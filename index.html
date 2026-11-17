@@ -784,7 +784,7 @@ function cardHtml(){
   return '<div class="c-head"><span>'+esc(st.coffee||'Coffee name')+'</span><span>'+esc([st.waterName,st.waterLevel].filter(Boolean).join(' '))+'</span></div>'+
   '<div class="c-method">'+esc(st.method||'Method')+'</div>'+
   '<div class="c-body"><div class="col"><div>'+esc(w)+'</div><div>'+esc(c)+'</div><div>'+(st.grind?esc(st.grinder)+' '+esc(st.grind):'')+'</div><div>'+(st.temp?'T '+esc(st.temp)+(st.tempA?' ('+esc(st.tempA)+')':''):'')+'</div></div>'+
-  '<div class="col"><div class="c-pours">'+pours+'</div>'+(st.pourNote?'<div class="pcm">'+esc(st.pourNote)+'</div>':'')+(valveLine(st)?'<div class="pcm">'+esc(valveLine(st))+'</div>':'')+'</div></div>'+
+  '<div class="col"><div class="c-pours">'+pours+'</div>'+'<div class="pcm">Pour schedule: '+esc(st.schedule||'Custom')+'</div>'+(st.pourNote?'<div class="pcm">'+esc(st.pourNote)+'</div>':'')+(valveLine(st)?'<div class="pcm">'+esc(valveLine(st))+'</div>':'')+'</div></div>'+
   '<div class="c-body"><div class="col"><div>'+(st.yield?'Y '+esc(st.yield):'&nbsp;')+'</div><div>'+(st.dd?'DD '+cardT(parseT(st.dd)):'&nbsp;')+'</div></div><div class="col c-rating"><div>&nbsp;</div><div>'+(r!=null?'R '+r.toFixed(1)+' / 10':'')+'</div></div></div>'+
   '<div class="c-notes">'+esc(st.notes)+(st.notes?'':'&nbsp;')+'</div>'+
   (st.taste.length?'<div class="c-tags">'+esc(st.taste.join(' · '))+'</div>':'')}
@@ -882,7 +882,7 @@ function renderCoffeeCards(){persist();var ul=$('#c_list'),ua=$('#c_arch');ul.in
   $('#c_count').textContent=nact+(nact===1?' coffee':' coffees')+' on your list';
   $('#c_archWrap').hidden=!na;$('#c_archSum').textContent='Archived ('+na+')';
   if(!nact){ul.innerHTML='<li class="empty">No coffees on your list. Add the bag you are brewing and it will appear in the Log a brew list.</li>'}
-  coffees.forEach(function(c,i){
+  coffees.map(function(c,i){return i}).sort(function(a,b){return coffees[a].name.localeCompare(coffees[b].name,undefined,{numeric:true,sensitivity:'base'})}).forEach(function(i){var c=coffees[i];
     if(!cmatch(c))return;
     var arch=!!c.archived,bs=history.filter(function(h){return h.coffee===c.name}),rs=bs.map(function(h){return num(h.rating)}).filter(function(x){return x!=null});
     var best=rs.length?Math.max.apply(null,rs).toFixed(1):'',dates=bs.map(function(h){return h.date||''}).sort(),last=dates.length?dateLabel(dates[dates.length-1]):'';
