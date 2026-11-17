@@ -776,7 +776,7 @@ function valveCheck(){if(!isSw())return'';var ps=st.pours,dd=parseT(st.dd);
     if(o!=null&&nx!=null&&o>=nx)return'Pour '+(i+1)+': the valve should open before pour '+(i+2)+' starts.';
     if(o!=null&&dd!=null&&o>=dd)return'Pour '+(i+1)+': the valve should open before drawdown ends.'}
   return''}
-function cardHtml(){
+function cardHtml(brief){
   var w=st.waterT?(st.waterT+(st.waterA?' ('+st.waterA+')':'')):'';
   var c=st.coffeeT?(st.coffeeT+(st.coffeeA?' ('+st.coffeeA+')':'')):'';
   var pours='';st.pours.forEach(function(p,i){var t=parseT(p.t);pours+='<span>'+(i===0||t===0?'':cardT(t))+'</span><span>'+esc(p.up)+'</span>'});
@@ -784,7 +784,7 @@ function cardHtml(){
   return '<div class="c-head"><span>'+esc(st.coffee||'Coffee name')+'</span><span>'+esc([st.waterName,st.waterLevel].filter(Boolean).join(' '))+'</span></div>'+
   '<div class="c-method">'+esc(st.method||'Method')+'</div>'+
   '<div class="c-body"><div class="col"><div>'+esc(w)+'</div><div>'+esc(c)+'</div><div>'+(st.grind?esc(st.grinder)+' '+esc(st.grind):'')+'</div><div>'+(st.temp?'T '+esc(st.temp)+(st.tempA?' ('+esc(st.tempA)+')':''):'')+'</div></div>'+
-  '<div class="col"><div class="c-pours">'+pours+'</div>'+'<div class="pcm">Pour: '+esc(st.schedule||'Custom')+'</div>'+(st.pourNote?'<div class="pcm">'+esc(st.pourNote)+'</div>':'')+(valveLine(st)?'<div class="pcm">'+esc(valveLine(st))+'</div>':'')+'</div></div>'+
+  '<div class="col">'+(brief?'':'<div class="c-pours">'+pours+'</div>')+'<div class="pcm">Pour: '+esc(st.schedule||'Custom')+'</div>'+(brief?'':(st.pourNote?'<div class="pcm">'+esc(st.pourNote)+'</div>':'')+(valveLine(st)?'<div class="pcm">'+esc(valveLine(st))+'</div>':''))+'</div></div>'+
   '<div class="c-body"><div class="col"><div>'+(st.yield?'Y '+esc(st.yield):'&nbsp;')+'</div><div>'+(st.dd?'DD '+cardT(parseT(st.dd)):'&nbsp;')+'</div></div><div class="col c-rating"><div>&nbsp;</div><div>'+(r!=null?'R '+r.toFixed(1)+' / 10':'')+'</div></div></div>'+
   '<div class="c-notes">'+esc(st.notes)+(st.notes?'':'&nbsp;')+'</div>'+
   (st.taste.length?'<div class="c-tags">'+esc(st.taste.join(' · '))+'</div>':'')}
@@ -1260,7 +1260,7 @@ function dateLabel(iso){if(!iso)return'';var d=new Date(iso+'T12:00:00');return 
 function retention(h){var w=num(h.waterA)!=null?num(h.waterA):num(h.waterT),c=num(h.coffeeA)!=null?num(h.coffeeA):num(h.coffeeT),y=num(h.yield);
   if(w==null||!w||y==null||y<=0||y>w)return null;var ret=w-y;var rec=r1(y/w*100);return{g:ret,pct:r1(100-rec),rec:rec,perG:c?ret/c:null}}
 function recRatio(h){var w=num(h.waterA)!=null?num(h.waterA):num(h.waterT),c=num(h.coffeeA)!=null?num(h.coffeeA):num(h.coffeeT);return(w&&c)?'1:'+r1(w/c):''}
-function cardFor(r){var keep=st;st=r;var h=cardHtml();st=keep;return h}
+function cardFor(r,brief){var keep=st;st=r;var h=cardHtml(brief);st=keep;return h}
 function fillSel(id,vals,cur,first){var s=$(id);s.innerHTML='<option value="">'+first+'</option>'+vals.map(function(v){return'<option value="'+esc(v)+'">'+esc(v)+'</option>'}).join('');s.value=vals.indexOf(cur)>-1?cur:''}
 function activeCount(){return(bf.q?1:0)+(bf.coffee?1:0)+(bf.method?1:0)+(bf.min?1:0)+bf.tags.length}
 function brewsFiltered(){var words=bf.q.toLowerCase().split(/\s+/).filter(Boolean);
@@ -1297,7 +1297,7 @@ function renderBrewList(){var list=brewsFiltered(),n=activeCount();
       '<span class="b2">'+meta+'</span><span class="bstats s5">'+stat('Grind',h.grind?h.grinder+' '+h.grind:'')+stat('Water',wt!=null?r1(wt)+' g':'')+stat('Temp',h.temp?h.temp+(h.tempA?' ('+h.tempA+')':'')+'°F':'')+stat('Coffee',cw!=null?r1(cw)+' g':'')+stat('Retained',rtn&&rtn.perG!=null?rtn.perG.toFixed(1)+' g/g':'')+stat('Style',h.method)+'</span>'+(valveLine(h)?'<span class="b2">Valve: '+esc(valveLine(h))+'</span>':'')+(open||!h.notes?'':'<span class="b3">'+esc(h.notes)+'</span>')+'<span class="btags">'+tags.join('')+'</span></button>';
     li.querySelector('.bhead').addEventListener('click',function(){bopen[h.id]=!open;renderBrewList()});
     if(open){var body=document.createElement('div');body.className='bbody';
-      body.innerHTML='<div class="card">'+cardFor(h)+'</div><div class="acts"><button type="button" class="btn primary small" data-a="again">Brew again</button><button type="button" class="btn small" data-a="edit">Edit</button><button type="button" class="btn small ghost" data-a="del">Delete</button></div>';
+      body.innerHTML='<div class="card">'+cardFor(h,true)+'</div><div class="acts"><button type="button" class="btn primary small" data-a="again">Brew again</button><button type="button" class="btn small" data-a="edit">Edit</button><button type="button" class="btn small ghost" data-a="del">Delete</button></div>';
       body.querySelector('[data-a=again]').addEventListener('click',function(){startFrom(h)});
       body.querySelector('[data-a=edit]').addEventListener('click',function(){startEdit(h)});
       body.querySelector('[data-a=del]').addEventListener('click',function(){var i=history.indexOf(h);history.splice(i,1);renderBrewList();renderHist();
