@@ -325,6 +325,9 @@ nav.tabs button{border-radius:999px;font-weight:600}
 .tag,.rate{background:#121212;color:#fff}
 .vsweet{stroke:#121212}.vsw{fill:#121212}.tbest{color:#121212}
 #panel-dose fieldset.sec>legend::after{content:"Fill in all three."}
+.bhead .b1{align-items:center}
+.bhead .b1 strong{flex:1 1 auto}
+.meth{flex:none;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);border:1.5px solid var(--ink);border-radius:999px;padding:1px 10px}
 </style>
 
 
@@ -1293,8 +1296,8 @@ function renderBrewList(){var list=brewsFiltered(),n=activeCount();
     var wt=num(h.waterA)!=null?num(h.waterA):num(h.waterT),cw=num(h.coffeeA)!=null?num(h.coffeeA):num(h.coffeeT);
     var rtn=retention(h);
     function stat(l,v){return'<span class="st"><span class="sl">'+l+'</span><span class="sv">'+esc(v||'–')+'</span></span>'}
-    li.innerHTML='<button type="button" class="bhead" aria-expanded="'+open+'"><span class="b1"><strong>'+esc(coffeeLabel(h.coffee))+'</strong><span class="rate">'+(r!=null?r.toFixed(1):'–')+'</span></span>'+
-      '<span class="b2">'+meta+'</span><span class="bstats s5">'+stat('Grind',h.grind?h.grinder+' '+h.grind:'')+stat('Water',wt!=null?r1(wt)+' g':'')+stat('Temp',h.temp?h.temp+(h.tempA?' ('+h.tempA+')':'')+'°F':'')+stat('Coffee',cw!=null?r1(cw)+' g':'')+stat('Retained',rtn&&rtn.perG!=null?rtn.perG.toFixed(1)+' g/g':'')+stat('Style',h.method)+'</span>'+(valveLine(h)?'<span class="b2">Valve: '+esc(valveLine(h))+'</span>':'')+(open||!h.notes?'':'<span class="b3">'+esc(h.notes)+'</span>')+'<span class="btags">'+tags.join('')+'</span></button>';
+    li.innerHTML='<button type="button" class="bhead" aria-expanded="'+open+'"><span class="b1"><strong>'+esc(coffeeLabel(h.coffee))+'</strong>'+(h.method?'<span class="meth">'+esc(h.method)+'</span>':'')+'<span class="rate">'+(r!=null?r.toFixed(1):'–')+'</span></span>'+
+      '<span class="b2">'+meta+'</span><span class="bstats s5">'+stat('Grind',h.grind?h.grinder+' '+h.grind:'')+stat('Water',wt!=null?r1(wt)+' g':'')+stat('Temp',h.temp?h.temp+(h.tempA?' ('+h.tempA+')':'')+'°F':'')+stat('Coffee',cw!=null?r1(cw)+' g':'')+stat('Retained',rtn&&rtn.perG!=null?rtn.perG.toFixed(1)+' g/g':'')+stat('Ratio',wt!=null&&cw?'1:'+r1(wt/cw):'')+'</span>'+(valveLine(h)?'<span class="b2">Valve: '+esc(valveLine(h))+'</span>':'')+(open||!h.notes?'':'<span class="b3">'+esc(h.notes)+'</span>')+'<span class="btags">'+tags.join('')+'</span></button>';
     li.querySelector('.bhead').addEventListener('click',function(){bopen[h.id]=!open;renderBrewList()});
     if(open){var body=document.createElement('div');body.className='bbody';
       body.innerHTML='<div class="card">'+cardFor(h,true)+'</div><div class="acts"><button type="button" class="btn primary small" data-a="again">Brew again</button><button type="button" class="btn small" data-a="edit">Edit</button><button type="button" class="btn small ghost" data-a="del">Delete</button></div>';
