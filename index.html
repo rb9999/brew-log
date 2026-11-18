@@ -328,6 +328,7 @@ nav.tabs button{border-radius:999px;font-weight:600}
 .bhead .b1{align-items:center}
 .bhead .b1 strong{flex:1 1 auto}
 .meth{flex:none;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);border:1.5px solid var(--ink);border-radius:999px;padding:1px 10px}
+#f_waterLevel:disabled{opacity:.45;cursor:not-allowed}
 </style>
 
 
@@ -784,7 +785,7 @@ function cardHtml(brief){
   var c=st.coffeeT?(st.coffeeT+(st.coffeeA?' ('+st.coffeeA+')':'')):'';
   var pours='';st.pours.forEach(function(p,i){var t=parseT(p.t);pours+='<span>'+(i===0||t===0?'':cardT(t))+'</span><span>'+esc(p.up)+'</span>'});
   var r=num(st.rating);
-  return '<div class="c-head"><span>'+esc(st.coffee||'Coffee name')+'</span><span>'+esc([st.waterName,st.waterLevel].filter(Boolean).join(' '))+'</span></div>'+
+  return '<div class="c-head"><span>'+esc(st.coffee||'Coffee name')+'</span><span>'+esc([st.waterName,st.waterName==='Tap'?'':st.waterLevel].filter(Boolean).join(' '))+'</span></div>'+
   '<div class="c-method">'+esc(st.method||'Method')+'</div>'+
   '<div class="c-body"><div class="col"><div>'+esc(w)+'</div><div>'+esc(c)+'</div><div>'+(st.grind?esc(st.grinder)+' '+esc(st.grind):'')+'</div><div>'+(st.temp?'T '+esc(st.temp)+(st.tempA?' ('+esc(st.tempA)+')':''):'')+'</div></div>'+
   '<div class="col">'+(brief?'':'<div class="c-pours">'+pours+'</div>')+'<div class="pcm">Pour: '+esc(st.schedule||'Custom')+'</div>'+(brief?'':(st.pourNote?'<div class="pcm">'+esc(st.pourNote)+'</div>':'')+(valveLine(st)?'<div class="pcm">'+esc(valveLine(st))+'</div>':''))+'</div></div>'+
@@ -804,7 +805,10 @@ function updateBanner(){var bar=$('#stateBar');if(!bar)return;
     var last=history[0];if(last){btn.hidden=false;btn.textContent='Copy last brew';btn.onclick=function(){startFrom(last)}}else btn.hidden=true}
   else if(startedFrom){bar.style.borderColor='var(--viz,#888)';msg.innerHTML='<strong>'+esc(startedFrom)+'</strong>';btn.hidden=false;btn.textContent='Start over';btn.onclick=function(){st=blank();startedFrom='';syncInputs();toast('Form cleared.')}}
   else{bar.style.borderColor='var(--warn,#b8860b)';msg.innerHTML='<strong>Draft in progress</strong> <span class="hint">'+(st.coffee?esc(coffeeLabel(st.coffee)):'no coffee chosen yet')+'. Not saved yet.</span>';btn.hidden=false;btn.textContent='Start a new brew';btn.onclick=function(){st=blank();startedFrom='';syncInputs();toast('Form cleared.')}}}
-function update(){persist();updateBanner();var scd=schedByName(st.schedule);$('#o_schedDesc').textContent=scd&&scd.desc?scd.desc:'';
+function update(){
+  /* Tap water has no level: keep the Level box empty and locked while Tap is selected */
+  var lvl=$('#f_waterLevel'),tapW=st.waterName==='Tap';if(tapW&&st.waterLevel){st.waterLevel='';lvl.value=''}lvl.disabled=tapW;lvl.placeholder=tapW?'n/a':'42';
+  persist();updateBanner();var scd=schedByName(st.schedule);$('#o_schedDesc').textContent=scd&&scd.desc?scd.desc:'';
   var wa=num(st.waterA),wt=num(st.waterT),ca=num(st.coffeeA),ct=num(st.coffeeT);
   var w=wa!=null?wa:wt,c=ca!=null?ca:ct;
   $('#o_ratio').textContent=(w&&c)?'1 : '+r1(w/c):'–';
