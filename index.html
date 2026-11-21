@@ -329,6 +329,7 @@ nav.tabs button{border-radius:999px;font-weight:600}
 .bhead .b1 strong{flex:1 1 auto}
 .meth{flex:none;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);border:1.5px solid var(--ink);border-radius:999px;padding:1px 10px}
 #f_waterLevel:disabled{opacity:.45;cursor:not-allowed}
+[data-a=rebuy][aria-pressed=true]{background:var(--ink);color:#fff}
 </style>
 
 
@@ -537,6 +538,7 @@ nav.tabs button{border-radius:999px;font-weight:600}
       </div>
       <label class="sr" for="c_q">Filter coffees</label>
       <input type="text" id="c_q" class="search" placeholder="Filter coffees by name, roaster or notes" autocomplete="off" style="margin-top:8px">
+      <div class="chips" style="margin-top:8px"><button type="button" class="chip" id="c_rebuy" aria-pressed="false">★ Buy again only</button></div>
       <ul class="blist" id="c_list" style="margin-top:8px"></ul>
       <details id="c_archWrap" hidden style="margin-top:14px"><summary id="c_archSum" style="cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--muted)">Archived</summary><ul class="blist" id="c_arch"></ul></details>
     </div>
@@ -884,8 +886,8 @@ function restoreCoffee(i){var c=coffees[i];c.archived=false;c.bags=(c.bags||1)+1
 function statCell(l,v){return'<span class="st"><span class="sl">'+l+'</span><span class="sv">'+esc(v||'–')+'</span></span>'}
 function renderCoffeeCards(){persist();var ul=$('#c_list'),ua=$('#c_arch');ul.innerHTML='';ua.innerHTML='';
   var na=coffees.filter(function(c){return c.archived}).length,nact=coffees.length-na;
-  var cq=($('#c_q').value||'').trim().toLowerCase(),shown=0,shownA=0;
-  function cmatch(c){return!cq||[c.name,c.roaster,c.flavor,c.comment,c.level].join(' ').toLowerCase().indexOf(cq)>-1}
+  var cq=($('#c_q').value||'').trim().toLowerCase(),shown=0,shownA=0,rbOnly=$('#c_rebuy').getAttribute('aria-pressed')==='true',filt=!!cq||rbOnly;
+  function cmatch(c){if(rbOnly&&!c.rebuy)return false;return!cq||[c.name,c.roaster,c.flavor,c.comment,c.level].join(' ').toLowerCase().indexOf(cq)>-1}
   $('#c_count').textContent=nact+(nact===1?' coffee':' coffees')+' on your list';
   $('#c_archWrap').hidden=!na;$('#c_archSum').textContent='Archived ('+na+')';
   if(!nact){ul.innerHTML='<li class="empty">No coffees on your list. Add the bag you are brewing and it will appear in the Log a brew list.</li>'}
@@ -895,13 +897,14 @@ function renderCoffeeCards(){persist();var ul=$('#c_list'),ua=$('#c_arch');ul.in
     var best=rs.length?Math.max.apply(null,rs).toFixed(1):'',dates=bs.map(function(h){return h.date||''}).sort(),last=dates.length?dateLabel(dates[dates.length-1]):'';
     var meta=[c.roaster,(c.bags>1?'Bag '+c.bags:''),arch?'':daysOff(c)].filter(Boolean).map(esc).join(' · ');
     var li=document.createElement('li');li.className='bi ci';
-    li.innerHTML='<div class="b1"><strong>'+esc(c.name)+'</strong>'+(c.level?'<span class="rate">'+esc(c.level)+'</span>':'')+'</div>'+
+    li.innerHTML='<div class="b1"><strong>'+esc(c.name)+'</strong>'+(c.rebuy?'<span class="meth">★ Buy again</span>':'')+(c.level?'<span class="rate">'+esc(c.level)+'</span>':'')+'</div>'+
       (c.flavor?'<div class="cf">'+esc(c.flavor)+'</div>':'')+(c.comment?'<div class="b2" style="white-space:pre-wrap">'+esc(c.comment)+'</div>':'')+(meta?'<div class="b2">'+meta+'</div>':'')+
       '<div class="bstats s3">'+statCell('Brews',String(bs.length))+statCell('Best',best)+statCell('Last brewed',last)+'</div>'+
-      '<div class="acts">'+(arch?'<button type="button" class="btn primary small" data-a="back">Add back (new bag)</button>':'<button type="button" class="btn primary small" data-a="brew">Brew this</button>')+'<button type="button" class="btn small" data-a="view">View brews</button><button type="button" class="btn small ghost" data-a="edit">Edit</button>'+(arch?'':'<button type="button" class="btn small ghost" data-a="rm">Remove</button>')+'<button type="button" class="btn small ghost" data-a="del">Delete</button></div>';
+      '<div class="acts"><button type="button" class="btn small" data-a="rebuy" aria-pressed="'+!!c.rebuy+'">'+(c.rebuy?'★ Buy again':'☆ Buy again')+'</button>'+(arch?'<button type="button" class="btn primary small" data-a="back">Add back (new bag)</button>':'<button type="button" class="btn primary small" data-a="brew">Brew this</button>')+'<button type="button" class="btn small" data-a="view">View brews</button><button type="button" class="btn small ghost" data-a="edit">Edit</button>'+(arch?'':'<button type="button" class="btn small ghost" data-a="rm">Remove</button>')+'<button type="button" class="btn small ghost" data-a="del">Delete</button></div>';
     var q=function(a){return li.querySelector('[data-a='+a+']')};
     if(q('brew'))q('brew').addEventListener('click',function(){
       if(bs.length)startFrom(bs[0]);else{if(editId!=null)endEdit();st=blank();st.coffee=c.name;startedFrom='New brew for '+coffeeLabel(c.name)+'.';syncInputs();showTab('log');toast('New brew for '+c.name+'.');window.scrollTo({top:0})}});
+    q('rebuy').addEventListener('click',function(){if(c.rebuy)delete c.rebuy;else c.rebuy=true;renderCoffeeCards()});
     if(q('back'))q('back').addEventListener('click',function(){restoreCoffee(i)});
     q('view').addEventListener('click',function(){bf.q='';bf.coffee=c.name;bf.method='';bf.min=0;bf.tags=[];bf.scope='all';showTab('brews');window.scrollTo({top:0})});
     q('edit').addEventListener('click',function(){openCoffeeForm(i)});
@@ -909,9 +912,10 @@ function renderCoffeeCards(){persist();var ul=$('#c_list'),ua=$('#c_arch');ul.in
     q('del').addEventListener('click',function(){deleteCoffee(i)});
     if(arch)shownA++;else shown++;
     (arch?ua:ul).appendChild(li)});
-  if(cq){$('#c_count').textContent=shown+' of '+nact+(nact===1?' coffee':' coffees')+' match';if(nact&&!shown)ul.innerHTML='<li class="empty">No coffees match “'+esc($('#c_q').value.trim())+'”.</li>';if(shownA&&na)$('#c_archWrap').open=true;$('#c_archSum').textContent='Archived ('+shownA+(shownA!==na?' of '+na:'')+')'}}
+  if(filt){$('#c_count').textContent=shown+' of '+nact+(nact===1?' coffee':' coffees')+' match';if(nact&&!shown)ul.innerHTML='<li class="empty">'+(cq?'No coffees match “'+esc($('#c_q').value.trim())+'”.':'No coffees are marked Buy again yet.')+(rbOnly&&shownA?' See Archived below.':'')+'</li>';if(shownA&&na)$('#c_archWrap').open=true;$('#c_archSum').textContent='Archived ('+shownA+(shownA!==na?' of '+na:'')+')'}}
 /* grinder list */
 $('#c_q').addEventListener('input',renderCoffeeCards);
+$('#c_rebuy').addEventListener('click',function(){var on=this.getAttribute('aria-pressed')!=='true';this.setAttribute('aria-pressed',on);renderCoffeeCards()});
 $('#f_grinder').addEventListener('change',function(e){if(e.target.value==='__add'){e.target.value=st.grinder;$('#addGrinder').hidden=false;$('#ag_code').focus()}else{st.grinder=e.target.value;update()}});
 $('#ag_cancel').addEventListener('click',function(){$('#addGrinder').hidden=true});
 $('#ag_add').addEventListener('click',function(){var c=$('#ag_code').value.trim().toUpperCase();if(!c){$('#ag_code').focus();return}
