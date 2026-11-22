@@ -332,7 +332,9 @@ nav.tabs button{border-radius:999px;font-weight:600}
 [data-a=rebuy][aria-pressed=true]{background:var(--ink);color:#fff}
 .tnet{font-family:var(--font-num);font-weight:700;font-size:26px;min-height:44px;display:flex;align-items:center}
 .tnet.warn{font-family:var(--font-ui);font-size:14px;font-weight:600;color:#b3261e}
-.tprimary{border:2px solid var(--ink)}
+.tprimary{background:var(--t4);border:0}
+.tprimary .hint,.tprimary .b2{color:rgba(18,18,18,.75)}
+.tprimary input[type]{background:var(--sfield)}
 .tnamefix{min-height:44px;display:flex;align-items:center;font-weight:700}
 </style>
 
@@ -1081,7 +1083,7 @@ function tareNet(t){var el=document.getElementById('tn'+t.id);if(!el)return;var 
 function primaryTare(){return tares.filter(function(t){return t.primary})[0]||null}
 function renderTares(){var ul=$('#t_list');ul.innerHTML='';var pr=primaryTare(),others=tares.filter(function(t){return!t.primary});
   $('#t_count').textContent=others.length+(others.length===1?' other item':' other items');
-  if(!pr){var ph=document.createElement('li');ph.className='bi ci';
+  if(!pr){var ph=document.createElement('li');ph.className='bi ci tprimary';
     ph.innerHTML='<div class="b1"><strong>Primary Decanter</strong><span class="meth">Not set</span></div><div class="b2">The empty weight of the decanter you use most. The Log a brew form uses it to turn a total weight into a yield.</div><div class="row c2" style="margin-top:10px;align-items:end"><div class="field"><label class="hint" for="tp_w">Empty weight</label><div class="unit" data-u="g"><input type="text" inputmode="decimal" class="num" id="tp_w" placeholder="500"></div></div><div><button type="button" class="btn primary small" id="tp_save">Save</button></div></div>';
     ph.querySelector('#tp_save').addEventListener('click',function(){var w=num($('#tp_w').value);if(w==null||w<0){$('#tp_w').focus();toast('Enter the empty weight in grams.');return}tares.push({id:nid++,name:'Primary Decanter',w:w,primary:true});persist();renderTares();toast('Primary Decanter saved.')});
     ul.appendChild(ph)}
