@@ -411,7 +411,6 @@ nav.tabs button{border-radius:999px;font-weight:600}
                 <input type="text" inputmode="decimal" class="num" id="f_grind" aria-label="Grind setting" placeholder="6.5">
               </div>
               <span class="hint" id="o_gHint"></span>
-              <div style="display:flex;gap:4px;flex-wrap:wrap"><button type="button" class="btn small ghost" id="gDef" hidden></button></div>
               <div class="addbox" id="addGrinder" hidden>
                 <div class="row">
                   <div class="field"><label for="ag_code" class="hint">Code</label><input type="text" id="ag_code" placeholder="GT" maxlength="6"></div>
@@ -721,8 +720,10 @@ function renderCoffees(){var s=$('#f_coffee');
   s.innerHTML='<option value="">'+(coffees.some(function(c){return!c.archived})?'Choose a coffee…':'No coffees yet. Add one on the Coffees tab.')+'</option>'+coffees.filter(function(c){return!c.archived||c.name===st.coffee}).sort(function(a,b){return coffeeLabel(a.name).localeCompare(coffeeLabel(b.name),undefined,{numeric:true,sensitivity:'base'})}).map(function(c){return'<option value="'+esc(c.name)+'">'+esc(coffeeLabel(c.name))+(c.archived?' (archived)':'')+'</option>'}).join('');
   s.value=coffeeRec(st.coffee)?st.coffee:''}
 function renderGrinders(){persist();var s=$('#f_grinder');
-  s.innerHTML=grinders.map(function(g){return'<option value="'+esc(g.code)+'">'+esc(g.code)+'</option>'}).join('')+'<option value="__add">+ Add grinder</option>';
-  if(!grinders.some(function(g){return g.code===st.grinder}))st.grinder=defGrinder();s.value=st.grinder}
+  if(!grinders.some(function(g){return g.code===st.grinder}))st.grinder=defGrinder();
+  var many=grinders.length>1,dg=defGrinder();
+  s.innerHTML=grinders.map(function(g){return'<option value="'+esc(g.code)+'">'+(many&&g.code===dg?'★ ':'')+esc(g.code)+'</option>'}).join('')+(many&&st.grinder!==dg?'<option value="__def">★ Make '+esc(st.grinder)+' the default</option>':'')+'<option value="__add">+ Add grinder</option>';
+  s.value=st.grinder}
 
 (function markOptional(){Array.prototype.forEach.call(document.querySelectorAll('label'),function(l){if(!/optional/i.test(l.textContent))return;var f=l.closest('.field');if(f)Array.prototype.forEach.call(f.querySelectorAll('input,textarea,select'),function(e){e.classList.add('opt')})});
   ['f_coffeeA','f_waterA','f_tempA','f_yield','f_tds'].forEach(function(id){var e=document.getElementById(id);if(e)e.classList.add('opt')})})();
@@ -896,7 +897,6 @@ function update(){
   $('#o_coffeeInfo').textContent=rec?[rec.level?rec.level+' roast':'',rec.flavor,rec.roaster,daysOff(rec)].filter(Boolean).join(' · '):'';
   var gr=grinders.filter(function(g){return g.code===st.grinder})[0];
   $('#o_gHint').textContent=(gr&&gr.name?gr.code+' is the '+gr.name+'. ':'')+'';
-  var gd=$('#gDef'),isDef=st.grinder===defGrinder();gd.hidden=grinders.length<2||!gr;if(!gd.hidden){gd.disabled=isDef;gd.textContent=isDef?gr.code+' is your default grinder':'Make '+gr.code+' my default grinder'}
   var ddT=parseT(st.dd),lastT=null;st.pours.forEach(function(p){var t=parseT(p.t);if(t!=null)lastT=t});
   var ta=num(st.tempA),tt=num(st.temp);$('#o_tempDiff').textContent=(ta!=null&&tt!=null)?(ta===tt?'Matches target':(ta>tt?'+':'')+r1(ta-tt)+'°F vs target'):'';
   var dh=$('#o_ddHint'),dbad=(ddT!=null&&lastT!=null&&ddT<=lastT);
@@ -978,8 +978,8 @@ function renderCoffeeCards(){persist();var ul=$('#c_list'),ua=$('#c_arch');ul.in
 /* grinder list */
 $('#c_q').addEventListener('input',renderCoffeeCards);
 $('#c_rebuy').addEventListener('click',function(){var on=this.getAttribute('aria-pressed')!=='true';this.setAttribute('aria-pressed',on);renderCoffeeCards()});
-$('#f_grinder').addEventListener('change',function(e){if(e.target.value==='__add'){e.target.value=st.grinder;$('#addGrinder').hidden=false;$('#ag_code').focus()}else{st.grinder=e.target.value;update()}});
-$('#gDef').addEventListener('click',function(){var g=grinders.filter(function(x){return x.code===st.grinder})[0];if(!g)return;grinders.forEach(function(x){delete x.def});g.def=true;renderGrinders();update();toast(g.code+' is now your default grinder for new brews.')});
+$('#f_grinder').addEventListener('change',function(e){if(e.target.value==='__def'){var g=grinders.filter(function(x){return x.code===st.grinder})[0];if(g){grinders.forEach(function(x){delete x.def});g.def=true;toast(g.code+' is now your default grinder for new brews.')}renderGrinders();update()}
+  else if(e.target.value==='__add'){e.target.value=st.grinder;$('#addGrinder').hidden=false;$('#ag_code').focus()}else{st.grinder=e.target.value;renderGrinders();update()}});
 $('#ag_cancel').addEventListener('click',function(){$('#addGrinder').hidden=true});
 $('#ag_add').addEventListener('click',function(){var c=$('#ag_code').value.trim().toUpperCase();if(!c){$('#ag_code').focus();return}
   if(!grinders.some(function(g){return g.code===c}))grinders.push({code:c,name:$('#ag_name').value.trim()});
