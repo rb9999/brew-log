@@ -91,7 +91,6 @@ input:focus-visible,textarea:focus-visible,button:focus-visible,select:focus-vis
 .status.ok{color:var(--good)}.status.warn{color:var(--warn)}
 .rating{display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:14px;align-items:center}
 input[type=range]{width:100%;accent-color:var(--accent);min-height:44px}
-.new-tag{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;background:var(--accent-soft);color:var(--accent);padding:2px 7px;border-radius:4px;margin-left:8px;font-weight:600;vertical-align:1px}
 .savebar{position:sticky;bottom:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;box-shadow:0 -6px 16px -10px rgba(0,0,0,.25)}
 .savebar .sum{flex:1 1 220px;font-family:var(--font-num);font-size:12.5px;color:var(--muted);min-width:0;overflow-wrap:anywhere}
 /* paper card preview */
@@ -252,7 +251,6 @@ fieldset.sec .chip[aria-pressed="true"]{color:var(--t)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 fieldset.sec .btn.small{background:var(--sfield);border-color:transparent}
 .btn.ghost{border-color:transparent}
-.new-tag{border-radius:8px}
 .savebar{border:0;border-radius:24px;background:var(--bar);box-shadow:0 12px 30px -10px rgba(34,34,59,.55);padding:12px 14px}
 .savebar .sum{color:var(--bar-ink)}
 .savebar .btn.ghost{color:var(--bar-ink)}
@@ -467,7 +465,7 @@ nav.tabs button{border-radius:999px;font-weight:600}
           <span class="hint" id="o_totalHint"></span>
           <span class="hint" id="o_retained"></span>
           <div class="field">
-            <span class="lbl" id="lbl_taste">Taste tags<span class="new-tag">new</span></span>
+            <span class="lbl" id="lbl_taste">Taste tags</span>
             <div class="chips" id="taste" role="group" aria-labelledby="lbl_taste"></div>
             <span class="hint">Tap to tag the cup. These make searching and trends much easier than free text.</span>
           </div>
