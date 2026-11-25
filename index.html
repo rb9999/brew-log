@@ -290,8 +290,8 @@ footer.data{border-top:0;margin-top:32px}
 a{color:var(--accent);text-underline-offset:2px}
 .btn:disabled{opacity:.55;cursor:default;filter:saturate(.6)}
 input::placeholder,textarea::placeholder{color:var(--muted);opacity:.5;font-style:italic;font-weight:400}
-input.auto{background:color-mix(in srgb,var(--fieldbg),var(--t3) 38%)!important}
-.hint.autoh{color:var(--ink);font-weight:600}
+input.auto{background:var(--t3)!important;box-shadow:inset 0 0 0 2.5px var(--ink);font-weight:700}
+.hint.autoh{display:inline-block;align-self:flex-start;width:fit-content;background:var(--ink);color:#fff!important;font-weight:700;font-size:11px;letter-spacing:.04em;padding:2px 8px;border-radius:999px}
 input[type].opt,textarea.opt,select.opt{background:color-mix(in srgb,var(--fieldbg),#8d8aa5 24%)}
 .optnote{margin:0 0 10px;display:flex;align-items:center;gap:8px}
 .optnote i{display:inline-block;width:34px;height:16px;border-radius:8px;background:color-mix(in srgb,var(--fieldbg),#8d8aa5 24%);border:1px solid var(--line)}
@@ -429,7 +429,7 @@ nav.tabs button{border-radius:999px;font-weight:600}
             <div class="field">
               <label for="f_coffeeT" class="lbl">Coffee</label>
               <div class="unit" data-u="g"><input type="text" inputmode="decimal" class="num" id="f_coffeeT" aria-label="Coffee weight, plan in grams"></div>
-              <small class="hint">plan</small>
+              <small class="hint" id="h_coffeeT">plan</small>
             </div>
             <div class="field">
               <label for="f_coffeeA" class="lbl">Coffee</label>
@@ -442,6 +442,7 @@ nav.tabs button{border-radius:999px;font-weight:600}
             <input type="text" inputmode="decimal" class="num" id="f_ratio" placeholder="15.5" aria-label="Coffee to water ratio, water grams per gram of coffee" autocomplete="off">
             <small class="hint" id="h_ratio">optional</small>
           </div></div>
+          <div class="chips" id="ratioMode" role="group" aria-label="How the ratio is used" hidden><button type="button" class="chip" data-m="auto">Follow ratio: auto-calculate</button><button type="button" class="chip" data-m="manual">Manual: I enter everything</button></div>
           <div class="ratio" aria-live="polite"><span>Ratio <b id="o_ratio">–</b></span><span id="o_ratioNote"></span></div>
         </fieldset>
 
@@ -695,7 +696,7 @@ var GOOD=6.5;
 var OVER=['Bitter','Astringent','Harsh','Dry'],UNDER=['Sour','Sharp acidity','Muted','Grassy','Flat'],LIGHT=['Weak','Thin'];
 var TECH=['Melodrip','Swirl','Vigorous pour','Gentle pour'];
 
-function blank(){return{coffee:'',waterName:'',waterLevel:'',method:'',waterT:'240',waterA:'',ratio:'',ratioAuto:false,waterAuto:false,coffeeT:'',coffeeA:'',grinder:'GT',grind:'',temp:'',
+function blank(){return{coffee:'',waterName:'',waterLevel:'',method:'',waterT:'240',waterA:'',ratio:'',ratioAuto:false,ratioMode:'auto',calc:'',coffeeT:'',coffeeA:'',grinder:'GT',grind:'',temp:'',
   pours:[{t:'0:00',up:''}],schedule:'',yield:'',dd:'',rating:'',notes:'',taste:[],roastDate:'',filter:lastFilter(),tds:'',tech:[]}}
 function lastFilter(){try{for(var i=0;i<history.length;i++){var f=history[i].filter;if(f&&filters.indexOf(f)>-1)return f}}catch(e){}return''}
 var st=blank();
@@ -804,11 +805,18 @@ $('#pours').addEventListener('click',function(e){var vb=e.target.closest('[data-
   var b=e.target.closest('[data-rm]');if(b&&st.pours.length>1){st.pours.splice(+b.dataset.rm,1);st.schedule='';renderScheduleSel();renderPours();update()}});
 $('#addPour').addEventListener('click',function(){st.schedule='';renderScheduleSel();var pv0=st.pours[st.pours.length-1],np={t:'',up:''};if(isSw())np.valve=(pv0&&pv0.valve)||'open';st.pours.push(np);renderPours();update();var el=$('#pt'+(st.pours.length-1));if(el)el.focus()});
 
-function setWaterFromRatio(){var R=num(st.ratio),c=num(st.coffeeT);if(R>0&&c>0){st.waterT=String(r1(c*R));$('#f_waterT').value=st.waterT;return true}return false}
-function ratioHook(k){
-  if(k==='waterT'){st.waterAuto=false;st.ratioAuto=false;st.ratio='';$('#f_ratio').value=''}
-  else if(k==='coffeeT'&&st.ratio&&st.waterAuto)setWaterFromRatio()}
-$('#f_ratio').addEventListener('input',function(e){st.ratio=e.target.value;st.ratioAuto=false;if(num(st.ratio)>0){st.waterAuto=true;setWaterFromRatio()}else st.waterAuto=false;
+function ratioOn(){return num(st.ratio)>0&&st.ratioMode!=='manual'}
+function calcFrom(which){var R=num(st.ratio),c=num(st.coffeeT),w=num(st.waterT);if(!(R>0))return;
+  if(which==='coffee'&&c>0){st.waterT=String(r1(c*R));st.calc='water';$('#f_waterT').value=st.waterT}
+  else if(which==='water'&&w>0){st.coffeeT=String(r1(w/R));st.calc='coffee';$('#f_coffeeT').value=st.coffeeT}}
+function ratioHook(k){if(!ratioOn())return;
+  if(k==='coffeeT'){if(num(st.coffeeT)>0)calcFrom('coffee');else st.calc=''}
+  else if(k==='waterT'){if(num(st.waterT)>0)calcFrom('water');else st.calc=''}}
+$('#f_ratio').addEventListener('input',function(e){st.ratio=e.target.value;st.ratioAuto=false;
+  if(num(st.ratio)>0){st.ratioMode='auto';if(st.calc==='coffee'&&num(st.waterT)>0)calcFrom('water');else if(num(st.coffeeT)>0)calcFrom('coffee');else calcFrom('water')}else st.calc='';
+  if(st.schedule)applySchedule(false);update()});
+$('#ratioMode').addEventListener('click',function(e){var b=e.target.closest('[data-m]');if(!b)return;st.ratioMode=b.dataset.m;
+  if(st.ratioMode==='manual')st.calc='';else{if(num(st.coffeeT)>0)calcFrom('coffee');else calcFrom('water')}
   if(st.schedule)applySchedule(false);update()});
 keys.forEach(function(k){var el=$('#f_'+k);if(!el)return;
   el.addEventListener('input',function(){st[k]=el.value;ratioHook(k);if(st.schedule&&/^(coffee|water)[TA]$/.test(k))applySchedule(false);update()});
@@ -857,10 +865,12 @@ function update(){
   var lvl=$('#f_waterLevel'),tapW=st.waterName==='Tap';if(tapW&&st.waterLevel){st.waterLevel='';lvl.value=''}lvl.disabled=tapW;lvl.placeholder=tapW?'n/a':'42';
   persist();updateBanner();var scd=schedByName(st.schedule);$('#o_schedDesc').textContent=scd&&scd.desc?scd.desc:'';
   var wa=num(st.waterA),wt=num(st.waterT),ca=num(st.coffeeA),ct=num(st.coffeeT);
-  var rAuto=!!(st.ratio&&st.ratioAuto),wAuto=!!(st.ratio&&st.waterAuto&&wt!=null&&ct!=null);
-  $('#f_ratio').classList.toggle('auto',rAuto);$('#f_waterT').classList.toggle('auto',wAuto);
-  $('#h_ratio').textContent=rAuto?'from schedule: type to change':(st.ratio?'your ratio':'optional');$('#h_ratio').classList.toggle('autoh',rAuto);
-  $('#h_waterT').textContent=wAuto?'plan, from ratio':'plan';$('#h_waterT').classList.toggle('autoh',wAuto);
+  var on=ratioOn(),hasR=num(st.ratio)>0,rAuto=on&&st.ratioAuto,wAuto=on&&st.calc==='water',cAuto=on&&st.calc==='coffee';
+  $('#ratioMode').hidden=!hasR;Array.prototype.forEach.call($('#ratioMode').children,function(b){b.setAttribute('aria-pressed',(b.dataset.m===(st.ratioMode==='manual'?'manual':'auto'))?'true':'false')});
+  $('#f_ratio').classList.toggle('auto',rAuto);$('#f_waterT').classList.toggle('auto',wAuto);$('#f_coffeeT').classList.toggle('auto',cAuto);
+  function tag(id,txt,on){var e=$(id);e.textContent=txt;e.classList.toggle('autoh',!!on)}
+  tag('#h_ratio',rAuto?'AUTO: schedule':(hasR?(on?'your ratio':'recommended (manual mode)'):'optional'),rAuto);
+  tag('#h_waterT',wAuto?'AUTO: calculated':'plan',wAuto);tag('#h_coffeeT',cAuto?'AUTO: calculated':'plan',cAuto);
   var w=wa!=null?wa:wt,c=ca!=null?ca:ct;
   $('#o_ratio').textContent=(w&&c)?'1 : '+r1(w/c):'–';
   $('#o_ratioNote').textContent=(w&&c)?'using '+(wa!=null||ca!=null?'actual':'target')+' weights':'';
@@ -989,7 +999,7 @@ $('#form').addEventListener('submit',function(e){e.preventDefault();
   if(editId!=null){var ix=-1;history.forEach(function(h,i){if(h.id===editId)ix=i});
     if(ix>-1){var u=JSON.parse(JSON.stringify(st));u.id=editId;u.date=history[ix].date;u.level=(coffeeRec(u.coffee)||{}).level||'';if(history[ix].ex)u.ex=true;history[ix]=u}
     endEdit();syncInputs();renderHist();renderBrews();showTab('brews');toast('Brew updated.');return}
-  var saved=JSON.parse(JSON.stringify(st));saved.id=nid++;saved.bag=(coffeeRec(saved.coffee)||{}).bags||1;saved.level=(coffeeRec(saved.coffee)||{}).level||'';saved.date=new Date().toISOString().slice(0,10);delete saved.ratio;delete saved.ratioAuto;delete saved.waterAuto;history.unshift(saved);
+  var saved=JSON.parse(JSON.stringify(st));saved.id=nid++;saved.bag=(coffeeRec(saved.coffee)||{}).bags||1;saved.level=(coffeeRec(saved.coffee)||{}).level||'';saved.date=new Date().toISOString().slice(0,10);delete saved.ratio;delete saved.ratioAuto;delete saved.ratioMode;delete saved.calc;history.unshift(saved);
   st=blank();startedFrom='';
   syncInputs();renderHist();window.scrollTo({top:0,behavior:'smooth'});toast('Saved. The form is clear and ready for your next brew.')});
 $('#clearBtn').addEventListener('click',function(){if(!confirm('Clear everything you have entered on this form? This cannot be undone.'))return;st=blank();startedFrom='';syncInputs();toast('Form cleared.')});
@@ -1015,8 +1025,8 @@ function renderScheduleSel(){var sel=$('#f_schedule');if(!sel)return;
   sel.innerHTML='<option value="">Custom (type my own)</option>'+schedOrder().filter(function(i){return schedules[i].name===st.schedule||scFits(schedules[i],st.method)}).map(function(i){var x=schedules[i];return'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>'}).join('');
   if(st.schedule&&!schedByName(st.schedule))st.schedule='';sel.value=st.schedule||''}
 function applyRatio(sc){var R=num(sc.ratio);
-  if(R>0){st.ratio=String(R);st.ratioAuto=true;st.waterAuto=true;setWaterFromRatio();$('#f_ratio').value=st.ratio}
-  else if(st.ratioAuto){st.ratio='';st.ratioAuto=false;st.waterAuto=false;$('#f_ratio').value=''}}
+  if(R>0){st.ratio=String(R);st.ratioAuto=true;st.ratioMode='auto';st.calc='';if(num(st.coffeeT)>0)calcFrom('coffee');$('#f_ratio').value=st.ratio}
+  else if(st.ratioAuto){st.ratio='';st.ratioAuto=false;st.calc='';$('#f_ratio').value=''}}
 function applySchedule(msg){var sc=schedByName(st.schedule);if(!sc)return;if(msg)applyRatio(sc);var W=schedWeights(),r=calcSteps(sc.steps,W.c,W.w);
   if(scMethods(sc).length===1&&!st.method){st.method=scMethods(sc)[0];renderChips()}
   st.pours=r.map(function(x){var o={t:x.t||'',up:x.up==null?'':String(r1(x.up))};if(x.valve){o.valve=x.valve;if(x.valve==='closed'&&x.ot)o.ot=x.ot}return o});if(!st.pours.length)st.pours=[{t:'0:00',up:''}];
@@ -1162,7 +1172,7 @@ function dcInit(){var sv={};try{sv=JSON.parse(localStorage.getItem('brewlog.dc')
   $('#dc_kh').textContent=avg!=null?'Your brews average '+avg.toFixed(1)+' g/g.':'Grams of water the grounds hold per gram of coffee.';
   if(!$('#dc_f').value)$('#dc_f').value=sv.f||'';if(!$('#dc_r').value)$('#dc_r').value=sv.r||'';if(!$('#dc_k').value)$('#dc_k').value=sv.k||(avg!=null?avg.toFixed(1):'');dcCalc()}
 ['#dc_f','#dc_r','#dc_k'].forEach(function(id){$(id).addEventListener('input',dcCalc)});
-$('#dc_use').addEventListener('click',function(){if(!dcAmt)return;st.coffeeT=String(dcAmt.c);st.waterT=String(dcAmt.w);st.ratio='';st.ratioAuto=false;st.waterAuto=false;showTab('log');syncInputs();update();toast('Coffee and water filled in on Log a brew.')});
+$('#dc_use').addEventListener('click',function(){if(!dcAmt)return;st.coffeeT=String(dcAmt.c);st.waterT=String(dcAmt.w);st.ratio='';st.ratioAuto=false;st.calc='';showTab('log');syncInputs();update();toast('Coffee and water filled in on Log a brew.')});
 function showTab(n){Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'),function(x){x.setAttribute('aria-selected',x.dataset.tab===n?'true':'false');$('#panel-'+x.dataset.tab).hidden=(x.dataset.tab!==n)});if(n==='brews')renderBrews();if(n==='coffees')renderCoffeeCards();if(n==='pours')renderSchedules();if(n==='trends')renderTrends();if(n==='ideas')renderIdeas();if(n==='notes')renderNotes();if(n==='tare')renderTares();if(n==='log')refreshTotal();if(n==='dose')dcInit()}
 Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'),function(b){b.addEventListener('click',function(){showTab(b.dataset.tab)})});
 $('#seeAll').addEventListener('click',function(){showTab('brews');window.scrollTo({top:0})});
