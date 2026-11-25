@@ -1,32 +1,47 @@
 # Brew Log
 
-A pour-over brew log: enter brews the way they are written on the paper card, then search them, see trends and get ideas for the next brew.
+A pour-over brew log. Enter each brew the way you would write it on a paper index card, then search your brews, see trends (including the grind, water temperature and drawdown that have worked best) and get ideas for the next cup.
 
-- Single file (`index.html`), no build step, no dependencies.
-- Data is saved in the browser's local storage on each device. Use **Export backup** in the footer to keep a copy, and **Import backup** to restore it.
+Features: brew log with pour schedules (including Switch valve timing), coffees and bags, a dose calculator, tare weights, notes and trends. It is one HTML file with no build step and no dependencies, made for phones and tablets.
 
-## Self-hosting on a NAS
+> **Read this first: security and trust**
+> - **The server has no login.** Anyone who can reach its address can read and change your data. Keep it on your home network or behind a VPN such as Tailscale. Do not expose it to the internet.
+> - **"Update app" downloads and runs code.** The button makes the server fetch `index.html` and `server.js` from GitHub and run them. By default it follows this repo (`rb9999/brew-log`), so you would be running whatever is pushed here. To stay in control, fork this repo and set `BREWLOG_REPO` to your fork (step 3 below). Only point it at a repo you trust.
 
-Put `index.html` and `server.js` in `/volume1/docker/brewlog`, create an empty `data` folder next to them, and run `docker-compose.yml`
-(Synology Container Manager > Project). Open `http://<nas>:8085`.
+## Where your data lives
 
-All data is saved to one file, `data/brewlog.json`, with a daily copy in `data/backups/`
-(last 30 kept). Every device that opens the page shares it. When the page is served
-without the server (for example GitHub Pages) it falls back to browser storage only.
+- **With the server (recommended):** everything is saved in one file, `data/brewlog.json`, plus a daily copy in `data/backups/` (the last 30 are kept). Every phone, tablet and computer that opens the page shares it.
+- **Without the server** (opening `index.html` directly, or hosting it on a static site): data is kept in that browser only.
+- **Backups:** the **...** menu at the bottom of the page has **Export backup** and **Import backup** (a JSON file you can keep anywhere).
+- Your data is never stored in this repo.
 
-To update, tap **Update app** in the page footer. The NAS downloads the latest `index.html` and
-`server.js` from this repo (the container restarts by itself if `server.js` changed).
+## Install with Docker (Synology, Linux, anything that runs Docker Compose)
 
-## Installing your own copy
+1. **Fork this repo** on GitHub (so updates come from you, not from the original author), then download it or `git clone` your fork.
+2. **Pick a folder** on your NAS or server and put `index.html`, `server.js` and `docker-compose.yml` in it. Create an empty folder named `data` next to them.
+   The example uses `/volume1/docker/brewlog` (Synology). On Linux something like `/opt/brewlog` works.
+3. **Edit `docker-compose.yml`.**
+   - Change the two folder paths under `volumes:` (the part before the `:`) to your folder and its `data` folder.
+   - Uncomment `BREWLOG_REPO` and set it to your fork, for example `your-name/brew-log`.
+4. **Start it.** On a Docker host run `docker compose up -d` in that folder. On Synology use Container Manager > Project > Create, pick the folder and its `docker-compose.yml`.
+5. **Open** `http://<your-server>:8085` in a browser. On a phone, use "Add to Home screen" for an app-like icon.
 
-1. Fork this repo on GitHub (so updates come from you, not from the original author).
-2. Copy `index.html`, `server.js` and `docker-compose.yml` into a folder on your NAS or Docker host and create an empty `data` folder next to them.
-3. In `docker-compose.yml`, change the folder paths to match, and uncomment `BREWLOG_REPO` and set it to your fork, e.g. `your-name/brew-log`.
-4. Start the project and open `http://<host>:8085`.
+## Install without Docker
 
-After that, edit your fork on GitHub and tap **Update app** in the page footer to pull the changes. The Update button downloads
-`index.html` and `server.js` from the repo named in `BREWLOG_REPO` and the server runs that code, so only point it at a repo you trust.
-Without `BREWLOG_REPO` it follows the original repo, `rb9999/brew-log`.
+You need Node.js 18 or newer. In a folder holding `index.html` and `server.js`:
 
-Your brews, coffees, pour schedules and notes live only in `data/brewlog.json` on your host. They are never stored in the repo.
-The server has no login, so keep it on your home network or behind a VPN such as Tailscale and do not expose it to the internet.
+```
+PORT=8085 APP_DIR=. DATA_DIR=./data node server.js
+```
+
+Then open `http://localhost:8085`. Keep it running with your usual tool (systemd, pm2 and so on).
+
+## Updating
+
+Tap **Update app** at the bottom of the page. The server downloads the latest `index.html` and `server.js` from the repo named in `BREWLOG_REPO` and reloads (the container restarts by itself if `server.js` changed). To change the app, edit your fork on GitHub and tap the button.
+
+## Notes
+
+- The page loads its fonts from Google Fonts. If that is blocked it falls back to system fonts and everything still works.
+- On Linux the container runs as root, so the files in `data/` are owned by root.
+- Licensed under the MIT license (see `LICENSE`).
