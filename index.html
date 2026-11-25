@@ -1025,7 +1025,7 @@ function renderScheduleSel(){var sel=$('#f_schedule');if(!sel)return;
   sel.innerHTML='<option value="">Custom (type my own)</option>'+schedOrder().filter(function(i){return schedules[i].name===st.schedule||scFits(schedules[i],st.method)}).map(function(i){var x=schedules[i];return'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>'}).join('');
   if(st.schedule&&!schedByName(st.schedule))st.schedule='';sel.value=st.schedule||''}
 function applyRatio(sc){var R=num(sc.ratio);
-  if(R>0){st.ratio=String(R);st.ratioAuto=true;st.ratioMode='auto';st.calc='';if(num(st.coffeeT)>0)calcFrom('coffee');$('#f_ratio').value=st.ratio}
+  if(R>0){st.ratio=String(R);st.ratioAuto=true;st.ratioMode='auto';st.calc='';if(num(st.coffeeT)>0)calcFrom('coffee');else calcFrom('water');$('#f_ratio').value=st.ratio}
   else if(st.ratioAuto){st.ratio='';st.ratioAuto=false;st.calc='';$('#f_ratio').value=''}}
 function applySchedule(msg){var sc=schedByName(st.schedule);if(!sc)return;if(msg)applyRatio(sc);var W=schedWeights(),r=calcSteps(sc.steps,W.c,W.w);
   if(scMethods(sc).length===1&&!st.method){st.method=scMethods(sc)[0];renderChips()}
