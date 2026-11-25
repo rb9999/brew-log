@@ -1022,7 +1022,7 @@ function schedByName(n){return schedules.filter(function(x){return x.name===n})[
 function scMethods(sc){return Array.isArray(sc.methods)?sc.methods:(sc.method?[sc.method]:[])}
 function scFits(sc,m){var l=scMethods(sc);m=(m||'').trim().toLowerCase();return!l.length||!m||l.some(function(x){return x.toLowerCase()===m})}
 function renderScheduleSel(){var sel=$('#f_schedule');if(!sel)return;
-  sel.innerHTML='<option value="">Custom (type my own)</option>'+schedOrder().filter(function(i){return schedules[i].name===st.schedule||scFits(schedules[i],st.method)}).map(function(i){var x=schedules[i];return'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>'}).join('');
+  sel.innerHTML='<option value="">Custom (type my own)</option>'+schedOrder().filter(function(i){return schedules[i].name===st.schedule||scFits(schedules[i],st.method)}).map(function(i){var x=schedules[i];return'<option value="'+esc(x.name)+'">'+esc(x.name)+(num(x.ratio)>0?' (R 1:'+esc(x.ratio)+')':'')+'</option>'}).join('');
   if(st.schedule&&!schedByName(st.schedule))st.schedule='';sel.value=st.schedule||''}
 function applyRatio(sc){var R=num(sc.ratio);
   if(R>0){st.ratio=String(R);st.ratioAuto=true;st.ratioMode='auto';st.calc='';if(num(st.coffeeT)>0)calcFrom('coffee');else calcFrom('water');$('#f_ratio').value=st.ratio}
