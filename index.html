@@ -205,6 +205,11 @@ input[type=range]{width:100%;accent-color:var(--accent);min-height:44px}
 .crow .cv.chg{color:var(--accent);font-weight:500}
 .crow .cn{color:var(--muted);font-size:13px}
 .bstats.s4{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+.moreWrap{position:relative;display:inline-block}
+.moreMenu{position:absolute;bottom:calc(100% + 8px);left:0;min-width:190px;background:#fff;border:2px solid var(--ink);border-radius:14px;padding:6px;display:flex;flex-direction:column;gap:2px;z-index:40;box-shadow:0 6px 0 rgba(0,0,0,.18)}
+.moreMenu[hidden]{display:none}
+.moreMenu .btn{width:100%;justify-content:flex-start;text-align:left}
+.moreMenu .danger{color:var(--bad,#b3261e);border-top:1px solid var(--line);border-radius:0 0 10px 10px;margin-top:4px;padding-top:10px}
 footer.data{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-block:28px 8px;padding-top:12px;border-top:1px solid var(--line)}
 .placeholder{background:var(--surface);border:1px dashed var(--line);border-radius:8px;padding:28px 20px;color:var(--muted);max-width:640px}
 .placeholder h2{color:var(--ink);font-size:17px;margin:0 0 6px}
@@ -659,10 +664,15 @@ nav.tabs button{border-radius:999px;font-weight:600}
 </div>
 <footer class="app data" id="dataBar">
   <span class="hint" id="syncMsg">Saved in this browser only.</span>
-  <button type="button" class="btn small ghost" id="exportBtn">Export backup</button>
-  <button type="button" class="btn small ghost" id="importBtn">Import backup</button>
-  <button type="button" class="btn small ghost" id="updateBtn" hidden>Update app</button>
-  <button type="button" class="btn small ghost" id="clearBtn2">Delete all data</button>
+  <button type="button" class="btn small" id="updateBtn" hidden>Update app</button>
+  <span class="moreWrap">
+    <button type="button" class="btn small ghost" id="moreBtn" aria-haspopup="true" aria-expanded="false" aria-controls="moreMenu" aria-label="More data options">…</button>
+    <div class="moreMenu" id="moreMenu" role="menu" hidden>
+      <button type="button" class="btn small ghost" id="exportBtn" role="menuitem">Export backup</button>
+      <button type="button" class="btn small ghost" id="importBtn" role="menuitem">Import backup</button>
+      <button type="button" class="btn small ghost danger" id="clearBtn2" role="menuitem">Delete all data</button>
+    </div>
+  </span>
   <input type="file" id="importFile" accept=".json,application/json" hidden>
   <span class="hint" id="storeWarn" hidden style="color:var(--bad)">This browser blocked storage, so nothing is being saved.</span>
 </footer>
@@ -1468,6 +1478,12 @@ document.addEventListener('visibilitychange',function(){if(!document.hidden&&SYN
 try{var m=sessionStorage.getItem('brewlog.msg');if(m){sessionStorage.removeItem('brewlog.msg');setTimeout(function(){toast(m)},300)}}catch(e){}
 
 function waitReload(){fetch('api/data',{cache:'no-store'}).then(function(){location.reload()}).catch(function(){setTimeout(waitReload,1000)})}
+(function(){var mb=$('#moreBtn'),mm=$('#moreMenu');
+  function close(){mm.hidden=true;mb.setAttribute('aria-expanded','false')}
+  mb.addEventListener('click',function(e){e.stopPropagation();var open=mm.hidden;mm.hidden=!open;if(open){mm.style.left='0';mm.style.right='auto';var r=mm.getBoundingClientRect();if(r.right>document.documentElement.clientWidth-8){mm.style.left='auto';mm.style.right='0'}}mb.setAttribute('aria-expanded',open?'true':'false')});
+  mm.addEventListener('click',close);
+  document.addEventListener('click',function(e){if(!mm.hidden&&!mm.contains(e.target))close()});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!mm.hidden){close();mb.focus()}})})();
 $('#updateBtn').addEventListener('click',function(){var b=$('#updateBtn');b.disabled=true;b.textContent='Updating…';
   fetch('api/update',{method:'POST'}).then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j}})}).then(function(x){
     b.disabled=false;b.textContent='Update app';
