@@ -243,8 +243,8 @@ nav.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accen
 .form{gap:16px}
 #stateBar,#editBar{border-width:0 0 0 6px!important;border-radius:16px!important;background:var(--card);padding:12px 14px!important}
 fieldset.sec{--t:var(--t1);--d:var(--d1);border:0;border-radius:28px;padding:22px 20px;background:var(--t);gap:20px}
-fieldset.sec:nth-of-type(2){--t:var(--t3);--d:var(--d3)}
-fieldset.sec:nth-of-type(3){--t:var(--t2);--d:var(--d2)}
+fieldset.sec:nth-of-type(2){--t:var(--t2);--d:var(--d2)}
+fieldset.sec:nth-of-type(3){--t:var(--t3);--d:var(--d3)}
 fieldset.sec:nth-of-type(4){--t:var(--t4);--d:var(--d4)}
 fieldset.sec>legend{float:left;width:100%;padding:0;margin:0 0 4px;font-size:24px;font-weight:800;letter-spacing:-.02em;text-transform:none;color:var(--d)}
 fieldset.sec>legend+*{clear:both}
@@ -319,8 +319,8 @@ fieldset.sec{border-radius:24px;padding:24px 20px}
 fieldset.sec>legend{font-size:32px;line-height:1.05;margin-bottom:2px}
 fieldset.sec>legend::after{display:block;font-family:var(--font-ui);font-weight:400;font-size:15px;letter-spacing:0;color:rgba(18,18,18,.78);margin-top:4px}
 fieldset.sec:nth-of-type(1)>legend::after{content:"What you are brewing, and how."}
-fieldset.sec:nth-of-type(2)>legend::after{content:"When and how much for each pour."}
-fieldset.sec:nth-of-type(3)>legend::after{content:"Grind setting and weights."}
+fieldset.sec:nth-of-type(2)>legend::after{content:"Grind setting and weights."}
+fieldset.sec:nth-of-type(3)>legend::after{content:"When and how much for each pour."}
 fieldset.sec:nth-of-type(4)>legend::after{content:"How the cup turned out."}
 fieldset.sec .hint,fieldset.sec small,fieldset.sec .status{color:rgba(18,18,18,.75)}
 fieldset.sec .field>label,fieldset.sec .lbl{font-weight:700}
@@ -417,19 +417,6 @@ nav.tabs button{border-radius:999px;font-weight:600}
         </fieldset>
 
         <fieldset class="sec">
-          <legend>Pours</legend>
-          <div class="field"><label for="f_schedule">Pour schedule</label><select id="f_schedule"></select><span class="hint" id="o_schedDesc" style="white-space:pre-wrap"></span></div>
-          <div class="pour-head" aria-hidden="true"><span></span><span>Starts at</span><span>Up to</span><span style="text-align:right">Added</span><span></span></div>
-          <div class="pours" id="pours"></div>
-          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-            <button type="button" class="btn small" id="addPour">+ Add pour</button>
-            <span class="status" id="o_pourCheck" aria-live="polite"></span>
-          </div>
-          <div class="field"><label for="f_pourNote">Pour comment (optional)</label><input type="text" id="f_pourNote" placeholder="Swirled after pour 3, stirred at the end…"></div>
-          <span class="hint">Weights are cumulative. Type times your way: 45, 110, 1:30 all work.</span>
-        </fieldset>
-
-        <fieldset class="sec">
           <legend>Recipe</legend>
           <div class="row">
             <div class="field">
@@ -472,6 +459,19 @@ nav.tabs button{border-radius:999px;font-weight:600}
           </div></div>
           <div class="chips" id="ratioMode" role="group" aria-label="How the ratio is used" hidden><button type="button" class="chip" data-m="auto">Follow ratio: auto-calculate</button><button type="button" class="chip" data-m="manual">Manual: I enter everything</button></div>
           <div class="ratio" aria-live="polite"><span>Ratio <b id="o_ratio">–</b></span><span id="o_ratioNote"></span></div>
+        </fieldset>
+
+        <fieldset class="sec">
+          <legend>Pours</legend>
+          <div class="field"><label for="f_schedule">Pour schedule</label><select id="f_schedule"></select><span class="hint" id="o_schedDesc" style="white-space:pre-wrap"></span></div>
+          <div class="pour-head" aria-hidden="true"><span></span><span>Starts at</span><span>Up to</span><span style="text-align:right">Added</span><span></span></div>
+          <div class="pours" id="pours"></div>
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <button type="button" class="btn small" id="addPour">+ Add pour</button>
+            <span class="status" id="o_pourCheck" aria-live="polite"></span>
+          </div>
+          <div class="field"><label for="f_pourNote">Pour comment (optional)</label><input type="text" id="f_pourNote" placeholder="Swirled after pour 3, stirred at the end…"></div>
+          <span class="hint">Weights are cumulative. Type times your way: 45, 110, 1:30 all work.</span>
         </fieldset>
 
         <fieldset class="sec">
