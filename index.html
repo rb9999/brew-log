@@ -208,6 +208,10 @@ input[type=range]{width:100%;accent-color:var(--accent);min-height:44px}
 .moreWrap{position:relative;display:inline-block}
 .moreMenu{position:absolute;bottom:calc(100% + 8px);left:0;min-width:190px;background:#fff;border:2px solid var(--ink);border-radius:14px;padding:6px;display:flex;flex-direction:column;gap:2px;z-index:40;box-shadow:0 6px 0 rgba(0,0,0,.18)}
 .moreMenu[hidden]{display:none}
+.moreMenu.down{bottom:auto;top:calc(100% + 8px)}
+nav.tabs .moreMenu button,nav.tabs .moreMenu button[aria-selected]{color:var(--ink)!important;min-height:0;width:100%;text-align:left;background:none!important;box-shadow:none!important;border:0!important;border-radius:8px;padding:11px 12px;font-weight:500;filter:none!important}
+nav.tabs .moreMenu button:hover,nav.tabs .moreMenu button:focus-visible{background:rgba(0,0,0,.07)!important}
+nav.tabs .moreMenu button[aria-selected="true"]{font-weight:800}
 .moreMenu .btn{width:100%;justify-content:flex-start;text-align:left;background:none!important;box-shadow:none!important;border:0!important;border-radius:8px;padding:11px 12px;font-weight:500;transform:none!important}
 .moreMenu .btn:hover,.moreMenu .btn:focus-visible{background:rgba(0,0,0,.07)!important}
 .moreMenu .danger{color:var(--bad,#b3261e);margin-top:4px;border-top:1px solid var(--line)!important;border-radius:0 0 8px 8px}
@@ -239,8 +243,8 @@ nav.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accen
 .form{gap:16px}
 #stateBar,#editBar{border-width:0 0 0 6px!important;border-radius:16px!important;background:var(--card);padding:12px 14px!important}
 fieldset.sec{--t:var(--t1);--d:var(--d1);border:0;border-radius:28px;padding:22px 20px;background:var(--t);gap:20px}
-fieldset.sec:nth-of-type(2){--t:var(--t2);--d:var(--d2)}
-fieldset.sec:nth-of-type(3){--t:var(--t3);--d:var(--d3)}
+fieldset.sec:nth-of-type(2){--t:var(--t3);--d:var(--d3)}
+fieldset.sec:nth-of-type(3){--t:var(--t2);--d:var(--d2)}
 fieldset.sec:nth-of-type(4){--t:var(--t4);--d:var(--d4)}
 fieldset.sec>legend{float:left;width:100%;padding:0;margin:0 0 4px;font-size:24px;font-weight:800;letter-spacing:-.02em;text-transform:none;color:var(--d)}
 fieldset.sec>legend+*{clear:both}
@@ -315,8 +319,8 @@ fieldset.sec{border-radius:24px;padding:24px 20px}
 fieldset.sec>legend{font-size:32px;line-height:1.05;margin-bottom:2px}
 fieldset.sec>legend::after{display:block;font-family:var(--font-ui);font-weight:400;font-size:15px;letter-spacing:0;color:rgba(18,18,18,.78);margin-top:4px}
 fieldset.sec:nth-of-type(1)>legend::after{content:"What you are brewing, and how."}
-fieldset.sec:nth-of-type(2)>legend::after{content:"Grind setting and weights."}
-fieldset.sec:nth-of-type(3)>legend::after{content:"When and how much for each pour."}
+fieldset.sec:nth-of-type(2)>legend::after{content:"When and how much for each pour."}
+fieldset.sec:nth-of-type(3)>legend::after{content:"Grind setting and weights."}
 fieldset.sec:nth-of-type(4)>legend::after{content:"How the cup turned out."}
 fieldset.sec .hint,fieldset.sec small,fieldset.sec .status{color:rgba(18,18,18,.75)}
 fieldset.sec .field>label,fieldset.sec .lbl{font-weight:700}
@@ -357,9 +361,14 @@ nav.tabs button{border-radius:999px;font-weight:600}
       <button role="tab" id="tab-pours" aria-selected="false" data-tab="pours">Pours</button>
       <button role="tab" id="tab-trends" aria-selected="false" data-tab="trends">Trends</button>
       <button role="tab" id="tab-ideas" aria-selected="false" data-tab="ideas">Ideas</button>
-      <button role="tab" id="tab-notes" aria-selected="false" data-tab="notes">Notes</button>
-      <button role="tab" id="tab-dose" aria-selected="false" data-tab="dose">Dose Calc</button>
       <button role="tab" id="tab-tare" aria-selected="false" data-tab="tare">Tare</button>
+      <span class="moreWrap" role="presentation">
+        <button type="button" id="tabMoreBtn" aria-selected="false" aria-haspopup="true" aria-expanded="false" aria-controls="tabMoreMenu" aria-label="More sections: Notes and Dose Calc">…</button>
+        <div class="moreMenu down" id="tabMoreMenu" role="menu" hidden>
+          <button type="button" role="menuitem" id="tab-notes" aria-selected="false" data-tab="notes">Notes</button>
+          <button type="button" role="menuitem" id="tab-dose" aria-selected="false" data-tab="dose">Dose Calc</button>
+        </div>
+      </span>
     </nav>
   </header>
 
@@ -408,6 +417,19 @@ nav.tabs button{border-radius:999px;font-weight:600}
         </fieldset>
 
         <fieldset class="sec">
+          <legend>Pours</legend>
+          <div class="field"><label for="f_schedule">Pour schedule</label><select id="f_schedule"></select><span class="hint" id="o_schedDesc" style="white-space:pre-wrap"></span></div>
+          <div class="pour-head" aria-hidden="true"><span></span><span>Starts at</span><span>Up to</span><span style="text-align:right">Added</span><span></span></div>
+          <div class="pours" id="pours"></div>
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <button type="button" class="btn small" id="addPour">+ Add pour</button>
+            <span class="status" id="o_pourCheck" aria-live="polite"></span>
+          </div>
+          <div class="field"><label for="f_pourNote">Pour comment (optional)</label><input type="text" id="f_pourNote" placeholder="Swirled after pour 3, stirred at the end…"></div>
+          <span class="hint">Weights are cumulative. Type times your way: 45, 110, 1:30 all work.</span>
+        </fieldset>
+
+        <fieldset class="sec">
           <legend>Recipe</legend>
           <div class="row">
             <div class="field">
@@ -450,19 +472,6 @@ nav.tabs button{border-radius:999px;font-weight:600}
           </div></div>
           <div class="chips" id="ratioMode" role="group" aria-label="How the ratio is used" hidden><button type="button" class="chip" data-m="auto">Follow ratio: auto-calculate</button><button type="button" class="chip" data-m="manual">Manual: I enter everything</button></div>
           <div class="ratio" aria-live="polite"><span>Ratio <b id="o_ratio">–</b></span><span id="o_ratioNote"></span></div>
-        </fieldset>
-
-        <fieldset class="sec">
-          <legend>Pours</legend>
-          <div class="field"><label for="f_schedule">Pour schedule</label><select id="f_schedule"></select><span class="hint" id="o_schedDesc" style="white-space:pre-wrap"></span></div>
-          <div class="pour-head" aria-hidden="true"><span></span><span>Starts at</span><span>Up to</span><span style="text-align:right">Added</span><span></span></div>
-          <div class="pours" id="pours"></div>
-          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-            <button type="button" class="btn small" id="addPour">+ Add pour</button>
-            <span class="status" id="o_pourCheck" aria-live="polite"></span>
-          </div>
-          <div class="field"><label for="f_pourNote">Pour comment (optional)</label><input type="text" id="f_pourNote" placeholder="Swirled after pour 3, stirred at the end…"></div>
-          <span class="hint">Weights are cumulative. Type times your way: 45, 110, 1:30 all work.</span>
         </fieldset>
 
         <fieldset class="sec">
@@ -1188,7 +1197,7 @@ function dcInit(){var sv={};try{sv=JSON.parse(localStorage.getItem('brewlog.dc')
   if(!$('#dc_f').value)$('#dc_f').value=sv.f||'';if(!$('#dc_r').value)$('#dc_r').value=sv.r||'';if(!$('#dc_k').value)$('#dc_k').value=sv.k||(avg!=null?avg.toFixed(1):'');dcCalc()}
 ['#dc_f','#dc_r','#dc_k'].forEach(function(id){$(id).addEventListener('input',dcCalc)});
 $('#dc_use').addEventListener('click',function(){if(!dcAmt)return;st.coffeeT=String(dcAmt.c);st.waterT=String(dcAmt.w);st.ratio='';st.ratioAuto=false;st.calc='';showTab('log');syncInputs();update();toast('Coffee and water filled in on Log a brew.')});
-function showTab(n){Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'),function(x){x.setAttribute('aria-selected',x.dataset.tab===n?'true':'false');$('#panel-'+x.dataset.tab).hidden=(x.dataset.tab!==n)});if(n==='brews')renderBrews();if(n==='coffees')renderCoffeeCards();if(n==='pours')renderSchedules();if(n==='trends')renderTrends();if(n==='ideas')renderIdeas();if(n==='notes')renderNotes();if(n==='tare')renderTares();if(n==='log')refreshTotal();if(n==='dose')dcInit()}
+function showTab(n){$('#tabMoreBtn').setAttribute('aria-selected',(n==='notes'||n==='dose')?'true':'false');Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'),function(x){x.setAttribute('aria-selected',x.dataset.tab===n?'true':'false');$('#panel-'+x.dataset.tab).hidden=(x.dataset.tab!==n)});if(n==='brews')renderBrews();if(n==='coffees')renderCoffeeCards();if(n==='pours')renderSchedules();if(n==='trends')renderTrends();if(n==='ideas')renderIdeas();if(n==='notes')renderNotes();if(n==='tare')renderTares();if(n==='log')refreshTotal();if(n==='dose')dcInit()}
 Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'),function(b){b.addEventListener('click',function(){showTab(b.dataset.tab)})});
 $('#seeAll').addEventListener('click',function(){showTab('brews');window.scrollTo({top:0})});
 
@@ -1479,12 +1488,17 @@ document.addEventListener('visibilitychange',function(){if(!document.hidden&&SYN
 try{var m=sessionStorage.getItem('brewlog.msg');if(m){sessionStorage.removeItem('brewlog.msg');setTimeout(function(){toast(m)},300)}}catch(e){}
 
 function waitReload(){fetch('api/data',{cache:'no-store'}).then(function(){location.reload()}).catch(function(){setTimeout(waitReload,1000)})}
-(function(){var mb=$('#moreBtn'),mm=$('#moreMenu');
+function wireMenu(mb,mm){
   function close(){mm.hidden=true;mb.setAttribute('aria-expanded','false')}
-  mb.addEventListener('click',function(e){e.stopPropagation();var open=mm.hidden;mm.hidden=!open;if(open){mm.style.left='0';mm.style.right='auto';var r=mm.getBoundingClientRect();if(r.right>document.documentElement.clientWidth-8){mm.style.left='auto';mm.style.right='0'}}mb.setAttribute('aria-expanded',open?'true':'false')});
+  mb.addEventListener('click',function(e){e.stopPropagation();var open=mm.hidden;
+    Array.prototype.forEach.call(document.querySelectorAll('.moreMenu'),function(x){x.hidden=true});
+    Array.prototype.forEach.call(document.querySelectorAll('[aria-haspopup]'),function(x){x.setAttribute('aria-expanded','false')});
+    mm.hidden=!open;mb.setAttribute('aria-expanded',open?'true':'false');
+    if(open){mm.style.left='0';mm.style.right='auto';var r=mm.getBoundingClientRect();if(r.right>document.documentElement.clientWidth-8){mm.style.left='auto';mm.style.right='0'}}});
   mm.addEventListener('click',close);
   document.addEventListener('click',function(e){if(!mm.hidden&&!mm.contains(e.target))close()});
-  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!mm.hidden){close();mb.focus()}})})();
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!mm.hidden){close();mb.focus()}})}
+wireMenu($('#moreBtn'),$('#moreMenu'));wireMenu($('#tabMoreBtn'),$('#tabMoreMenu'));
 $('#updateBtn').addEventListener('click',function(){var b=$('#updateBtn');b.disabled=true;b.textContent='Updating…';
   fetch('api/update',{method:'POST'}).then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j}})}).then(function(x){
     b.disabled=false;b.textContent='Update app';
