@@ -361,12 +361,12 @@ nav.tabs button{border-radius:999px;font-weight:600}
       <button role="tab" id="tab-pours" aria-selected="false" data-tab="pours">Pours</button>
       <button role="tab" id="tab-trends" aria-selected="false" data-tab="trends">Trends</button>
       <button role="tab" id="tab-ideas" aria-selected="false" data-tab="ideas">Ideas</button>
-      <button role="tab" id="tab-tare" aria-selected="false" data-tab="tare">Tare</button>
       <span class="moreWrap" role="presentation">
-        <button type="button" id="tabMoreBtn" aria-selected="false" aria-haspopup="true" aria-expanded="false" aria-controls="tabMoreMenu" aria-label="More sections: Notes and Dose Calc">…</button>
+        <button type="button" id="tabMoreBtn" aria-selected="false" aria-haspopup="true" aria-expanded="false" aria-controls="tabMoreMenu" aria-label="More sections: Notes, Dose Calc and Tare">…</button>
         <div class="moreMenu down" id="tabMoreMenu" role="menu" hidden>
           <button type="button" role="menuitem" id="tab-notes" aria-selected="false" data-tab="notes">Notes</button>
           <button type="button" role="menuitem" id="tab-dose" aria-selected="false" data-tab="dose">Dose Calc</button>
+          <button type="button" role="menuitem" id="tab-tare" aria-selected="false" data-tab="tare">Tare</button>
         </div>
       </span>
     </nav>
@@ -1197,7 +1197,7 @@ function dcInit(){var sv={};try{sv=JSON.parse(localStorage.getItem('brewlog.dc')
   if(!$('#dc_f').value)$('#dc_f').value=sv.f||'';if(!$('#dc_r').value)$('#dc_r').value=sv.r||'';if(!$('#dc_k').value)$('#dc_k').value=sv.k||(avg!=null?avg.toFixed(1):'');dcCalc()}
 ['#dc_f','#dc_r','#dc_k'].forEach(function(id){$(id).addEventListener('input',dcCalc)});
 $('#dc_use').addEventListener('click',function(){if(!dcAmt)return;st.coffeeT=String(dcAmt.c);st.waterT=String(dcAmt.w);st.ratio='';st.ratioAuto=false;st.calc='';showTab('log');syncInputs();update();toast('Coffee and water filled in on Log a brew.')});
-function showTab(n){$('#tabMoreBtn').setAttribute('aria-selected',(n==='notes'||n==='dose')?'true':'false');Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'),function(x){x.setAttribute('aria-selected',x.dataset.tab===n?'true':'false');$('#panel-'+x.dataset.tab).hidden=(x.dataset.tab!==n)});if(n==='brews')renderBrews();if(n==='coffees')renderCoffeeCards();if(n==='pours')renderSchedules();if(n==='trends')renderTrends();if(n==='ideas')renderIdeas();if(n==='notes')renderNotes();if(n==='tare')renderTares();if(n==='log')refreshTotal();if(n==='dose')dcInit()}
+function showTab(n){$('#tabMoreBtn').setAttribute('aria-selected',(n==='notes'||n==='dose'||n==='tare')?'true':'false');Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'),function(x){x.setAttribute('aria-selected',x.dataset.tab===n?'true':'false');$('#panel-'+x.dataset.tab).hidden=(x.dataset.tab!==n)});if(n==='brews')renderBrews();if(n==='coffees')renderCoffeeCards();if(n==='pours')renderSchedules();if(n==='trends')renderTrends();if(n==='ideas')renderIdeas();if(n==='notes')renderNotes();if(n==='tare')renderTares();if(n==='log')refreshTotal();if(n==='dose')dcInit()}
 Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'),function(b){b.addEventListener('click',function(){showTab(b.dataset.tab)})});
 $('#seeAll').addEventListener('click',function(){showTab('brews');window.scrollTo({top:0})});
 
