@@ -208,6 +208,11 @@ input[type=range]{width:100%;accent-color:var(--accent);min-height:44px}
 .moreWrap{position:relative;display:inline-block}
 .moreMenu{position:absolute;bottom:calc(100% + 8px);left:0;min-width:190px;background:#fff;border:2px solid var(--ink);border-radius:14px;padding:6px;display:flex;flex-direction:column;gap:2px;z-index:40;box-shadow:0 6px 0 rgba(0,0,0,.18)}
 .moreMenu[hidden]{display:none}
+.wcOv{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:90;display:flex;align-items:center;justify-content:center;padding:16px}
+.wcCard{background:#fff;border:2px solid var(--ink);border-radius:18px;padding:18px;max-width:420px;width:100%;box-shadow:0 6px 0 rgba(0,0,0,.18)}
+.wcView{position:fixed;inset:0;z-index:80;background:#fff;display:flex;flex-direction:column}
+.wcBar{display:flex;gap:8px;align-items:center;padding:8px 10px;border-bottom:2px solid var(--ink);background:#fff}
+.wcView iframe{flex:1;width:100%;border:0;background:#fff}
 .moreMenu.down{bottom:auto;top:calc(100% + 8px)}
 nav.tabs .moreMenu button,nav.tabs .moreMenu button[aria-selected]{color:var(--ink)!important;min-height:0;width:100%;text-align:left;background:none!important;box-shadow:none!important;border:0!important;border-radius:8px;padding:11px 12px;font-weight:500;filter:none!important}
 nav.tabs .moreMenu button:hover,nav.tabs .moreMenu button:focus-visible{background:rgba(0,0,0,.07)!important}
@@ -367,6 +372,7 @@ nav.tabs button{border-radius:999px;font-weight:600}
           <button type="button" role="menuitem" id="tab-notes" aria-selected="false" data-tab="notes">Notes</button>
           <button type="button" role="menuitem" id="tab-dose" aria-selected="false" data-tab="dose">Dose Calc</button>
           <button type="button" role="menuitem" id="tab-tare" aria-selected="false" data-tab="tare">Tare</button>
+          <button type="button" role="menuitem" id="wcOpen">Water calculator ↗</button>
         </div>
       </span>
     </nav>
@@ -680,6 +686,7 @@ nav.tabs button{border-radius:999px;font-weight:600}
     <div class="moreMenu" id="moreMenu" role="menu" hidden>
       <button type="button" class="btn small ghost" id="exportBtn" role="menuitem">Export backup</button>
       <button type="button" class="btn small ghost" id="importBtn" role="menuitem">Import backup</button>
+      <button type="button" class="btn small ghost" id="wcSettings" role="menuitem">Water calculator settings</button>
       <button type="button" class="btn small ghost danger" id="clearBtn2" role="menuitem">Delete all data</button>
     </div>
   </span>
@@ -687,6 +694,23 @@ nav.tabs button{border-radius:999px;font-weight:600}
   <span class="hint" id="storeWarn" hidden style="color:var(--bad)">This browser blocked storage, so nothing is being saved.</span>
 </footer>
 <div id="toast" role="status" aria-live="polite"></div>
+<div class="wcOv" id="wcPanel" hidden>
+  <div class="wcCard" role="dialog" aria-modal="true" aria-labelledby="wc_h">
+    <h3 id="wc_h" style="margin:0 0 6px">Water calculator</h3>
+    <p id="wc_p" class="hint" style="margin:0 0 10px"></p>
+    <label for="wc_url" class="hint">Address of your water calculator</label>
+    <input type="url" id="wc_url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…" style="width:100%;margin:4px 0 12px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button type="button" class="btn small" id="wc_save">Save</button>
+      <button type="button" class="btn small ghost" id="wc_cancel">Cancel</button>
+      <button type="button" class="btn small ghost" id="wc_hide" style="margin-left:auto"></button>
+    </div>
+  </div>
+</div>
+<div class="wcView" id="wcView" hidden>
+  <div class="wcBar"><button type="button" class="btn small" id="wcBack">← Back to Brew Log</button><button type="button" class="btn small ghost" id="wcDirect" title="Use this if the page below stays blank">Open directly</button></div>
+  <iframe id="wcFrame" title="Water calculator" src="about:blank"></iframe>
+</div>
 
 <script>
 (function(){
@@ -707,7 +731,7 @@ function fmtT(t){if(t==null)return'';var m=Math.floor(t/60),s=t%60;
 function cardT(t){if(t==null)return'';var m=Math.floor(t/60),s=t%60;return m===0?String(s):m+String(s).padStart(2,'0')}
 function r1(n){return(Math.round(n*10)/10).toString()}
 
-var methods=['V60','Kalita Wave','Aeropress'],declinedMethod='';
+var methods=['V60','Kalita Wave','Aeropress'],declinedMethod='',wcalc={};
 function allMethods(){return methods.filter(function(m){return m.toLowerCase()!=='switch'}).concat(['Switch'])}
 function isSw(){return(st.method||'').trim().toLowerCase()==='switch'}
 var WATERS=['Tap','Light','Medium','Dark'];
@@ -1445,11 +1469,11 @@ $('#b_clear').addEventListener('click',function(){bf.q='';bf.coffee='';bf.method
 /* Saving: everything lives in this browser's localStorage */
 var LOADED=false,SKEY='brewlog.v1';
 var draftAt=0,lastDraftJs='';
-function persist(){if(!LOADED)return;try{var dr=(editId!=null&&editDraft?editDraft:st),dj=JSON.stringify(dr);if(dj!==lastDraftJs){lastDraftJs=dj;draftAt=Date.now()}localStorage.setItem(SKEY,JSON.stringify({v:1,draftAt:draftAt,coffees:coffees,grinders:grinders,schedules:schedules,notes:notes,tares:tares,methods:methods,filters:filters,history:history,nid:nid,draft:(editId!=null&&editDraft?editDraft:st)}))}catch(e){$('#storeWarn').hidden=false}
+function persist(){if(!LOADED)return;try{var dr=(editId!=null&&editDraft?editDraft:st),dj=JSON.stringify(dr);if(dj!==lastDraftJs){lastDraftJs=dj;draftAt=Date.now()}localStorage.setItem(SKEY,JSON.stringify({v:1,draftAt:draftAt,coffees:coffees,grinders:grinders,schedules:schedules,notes:notes,tares:tares,methods:methods,filters:filters,history:history,nid:nid,wcalc:wcalc,draft:(editId!=null&&editDraft?editDraft:st)}))}catch(e){$('#storeWarn').hidden=false}
   if(SYNC)queuePush()}
 (function(){try{var raw=localStorage.getItem(SKEY);if(raw){var d=JSON.parse(raw);
   if(Array.isArray(d.coffees))coffees=d.coffees;if(Array.isArray(d.grinders)&&d.grinders.length)grinders=d.grinders;
-  if(Array.isArray(d.history))history=d.history;if(Array.isArray(d.schedules))schedules=d.schedules;if(Array.isArray(d.notes))notes=d.notes;if(Array.isArray(d.tares))tares=d.tares;if(Array.isArray(d.methods))methods=d.methods;if(Array.isArray(d.filters))filters=d.filters;if(d.nid)nid=d.nid;
+  if(Array.isArray(d.history))history=d.history;if(Array.isArray(d.schedules))schedules=d.schedules;if(Array.isArray(d.notes))notes=d.notes;if(Array.isArray(d.tares))tares=d.tares;if(Array.isArray(d.methods))methods=d.methods;if(Array.isArray(d.filters))filters=d.filters;if(d.nid)nid=d.nid;if(d.wcalc&&typeof d.wcalc==='object'&&!Array.isArray(d.wcalc))wcalc=d.wcalc;
   if(d.draft&&typeof d.draft==='object'){var b=blank();for(var k in d.draft)b[k]=d.draft[k];if(!Array.isArray(b.pours)||!b.pours.length)b.pours=[{t:'0:00',up:''}];st=b}}}catch(e){}
   try{var dd0=JSON.parse(localStorage.getItem(SKEY)||'{}');draftAt=dd0.draftAt||Date.now();if(dd0.draftAt&&Date.now()-dd0.draftAt>12*36e5&&JSON.stringify(st)!==JSON.stringify(blank()))st=blank()}catch(e){}
   if(!st.filter)st.filter=lastFilter();lastDraftJs=JSON.stringify(st);
@@ -1457,12 +1481,12 @@ function persist(){if(!LOADED)return;try{var dr=(editId!=null&&editDraft?editDra
 
 /* Optional sync to the NAS server (server.js). Without it, this page just uses browser storage. */
 var SYNC=false,srev=0,lastSent='',pt=null,REVKEY='brewlog.rev';
-function dataOnly(){return{v:1,coffees:coffees,grinders:grinders,schedules:schedules,notes:notes,tares:tares,methods:methods,filters:filters,history:history,nid:nid}}
+function dataOnly(){return{v:1,coffees:coffees,grinders:grinders,schedules:schedules,notes:notes,tares:tares,methods:methods,filters:filters,history:history,nid:nid,wcalc:wcalc}}
 function setSyncUI(t,bad){var e=$('#syncMsg');if(e){e.textContent=t;e.style.color=bad?'var(--bad)':''}}
 function hasData(d){return!!d&&((d.history||[]).length||(d.coffees||[]).length||(d.schedules||[]).length||(d.notes||[]).length||(d.tares||[]).length)}
 function queuePush(){if(JSON.stringify(dataOnly())===lastSent)return;clearTimeout(pt);pt=setTimeout(push,700)}
 function adopt(j,msg){try{var o={};try{o=JSON.parse(localStorage.getItem(SKEY))||{}}catch(e){}
-  o.v=1;o.coffees=j.data.coffees;o.grinders=j.data.grinders||grinders;o.schedules=j.data.schedules||[];o.notes=j.data.notes||[];o.tares=Array.isArray(j.data.tares)?j.data.tares:[];o.methods=Array.isArray(j.data.methods)?j.data.methods:methods;o.filters=j.data.filters||filters;o.history=j.data.history;o.nid=j.data.nid||100;
+  o.v=1;o.coffees=j.data.coffees;o.grinders=j.data.grinders||grinders;o.schedules=j.data.schedules||[];o.notes=j.data.notes||[];o.tares=Array.isArray(j.data.tares)?j.data.tares:[];o.methods=Array.isArray(j.data.methods)?j.data.methods:methods;o.filters=j.data.filters||filters;o.history=j.data.history;o.nid=j.data.nid||100;o.wcalc=(j.data.wcalc&&typeof j.data.wcalc==='object'&&!Array.isArray(j.data.wcalc))?j.data.wcalc:{};
   localStorage.setItem(SKEY,JSON.stringify(o));localStorage.setItem(REVKEY,String(j.rev));if(msg)sessionStorage.setItem('brewlog.msg',msg)}catch(e){}
   location.reload()}
 function putData(d,base){return fetch('api/data',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({baseRev:base,data:d})}).then(function(r){return r.json().then(function(j){return{s:r.status,j:j}})})}
@@ -1499,6 +1523,30 @@ function wireMenu(mb,mm){
   document.addEventListener('click',function(e){if(!mm.hidden&&!mm.contains(e.target))close()});
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!mm.hidden){close();mb.focus()}})}
 wireMenu($('#moreBtn'),$('#moreMenu'));wireMenu($('#tabMoreBtn'),$('#tabMoreMenu'));
+(function(){var pnl=$('#wcPanel'),inp=$('#wc_url'),view=$('#wcView'),frame=$('#wcFrame'),openAfter=false;
+  function save(){persist();if(SYNC)queuePush()}
+  function showBtn(){$('#wcOpen').hidden=!!wcalc.hide}
+  function normUrl(v){v=(v||'').trim();if(!v)return'';if(!/^[a-z][a-z0-9+.-]*:\/\//i.test(v))v=(/^(localhost|\d{1,3}(\.\d{1,3}){3}|[^\/]*:\d+|[^\/]*\.local)(\/|:|$)/i.test(v)?'http://':'https://')+v;try{var u=new URL(v);if(u.protocol!=='http:'&&u.protocol!=='https:')return'';if(u.hostname.indexOf('.')<0&&u.hostname!=='localhost'&&!u.port)return'';return u.href}catch(e){return''}}
+  function openPanel(first){openAfter=first;$('#wc_h').textContent='Water calculator';
+    $('#wc_p').textContent=first?'Paste the address of your water calculator. It is remembered, and opens inside Brew Log with a Back button. You can change it later under the ... menu at the bottom of the page.':'The address is saved with your data, so every device you use gets it.';
+    inp.value=wcalc.url||'';$('#wc_save').textContent=first?'Save and open':'Save';$('#wc_hide').textContent=wcalc.hide?'Show in menu':(first?'I don\u2019t have one: hide this':'Hide from menu');
+    pnl.hidden=false;setTimeout(function(){inp.focus()},30)}
+  function closePanel(){pnl.hidden=true}
+  function openView(){if(!view.hidden)return;frame.src=wcalc.url;view.hidden=false;try{history.pushState({wc:1},'')}catch(e){}}
+  function closeView(fromPop){if(view.hidden)return;view.hidden=true;frame.src='about:blank';if(!fromPop){try{if(history.state&&history.state.wc)history.back()}catch(e){}}}
+  $('#wcOpen').addEventListener('click',function(){if(wcalc.url)openView();else openPanel(true)});
+  $('#wcSettings').addEventListener('click',function(){openPanel(false)});
+  $('#wc_save').addEventListener('click',function(){var u=normUrl(inp.value);if(!u){toast('Enter a web address, for example https://example.com');inp.focus();return}
+    wcalc.url=u;save();closePanel();if(openAfter)openView();else toast('Water calculator address saved.')});
+  $('#wc_cancel').addEventListener('click',closePanel);
+  $('#wc_hide').addEventListener('click',function(){wcalc.hide=!wcalc.hide;if(!wcalc.hide)delete wcalc.hide;save();showBtn();closePanel();toast(wcalc.hide?'Hidden. Bring it back under the ... menu at the bottom: Water calculator settings.':'Water calculator is back in the menu.')});
+  $('#wcBack').addEventListener('click',function(){closeView(false)});
+  $('#wcDirect').addEventListener('click',function(){if(wcalc.url)location.href=wcalc.url});
+  window.addEventListener('popstate',function(){if(!view.hidden)closeView(true)});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'){if(!pnl.hidden)closePanel();else if(!view.hidden)closeView(false)}});
+  pnl.addEventListener('click',function(e){if(e.target===pnl)closePanel()});
+  inp.addEventListener('keydown',function(e){if(e.key==='Enter')$('#wc_save').click()});
+  showBtn();window.wcRefresh=showBtn})();
 $('#updateBtn').addEventListener('click',function(){var b=$('#updateBtn');b.disabled=true;b.textContent='Updating…';
   fetch('api/update',{method:'POST'}).then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j}})}).then(function(x){
     b.disabled=false;b.textContent='Update app';
@@ -1507,12 +1555,12 @@ $('#updateBtn').addEventListener('click',function(){var b=$('#updateBtn');b.disa
     toast('Updated '+x.j.updated.join(' and ')+'. Reloading…');setTimeout(waitReload,x.j.restart?2500:800)})
   .catch(function(){b.disabled=false;b.textContent='Update app';toast('Could not reach the NAS server.')})});
 function download(name,text){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500)}
-$('#exportBtn').addEventListener('click',function(){download('brew-log-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({v:1,coffees:coffees,grinders:grinders,schedules:schedules,notes:notes,tares:tares,methods:methods,filters:filters,history:history,nid:nid},null,1));toast('Backup downloaded.')});
+$('#exportBtn').addEventListener('click',function(){download('brew-log-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({v:1,coffees:coffees,grinders:grinders,schedules:schedules,notes:notes,tares:tares,methods:methods,filters:filters,history:history,nid:nid,wcalc:wcalc},null,1));toast('Backup downloaded.')});
 $('#importBtn').addEventListener('click',function(){$('#importFile').click()});
 $('#importFile').addEventListener('change',function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();
   r.onload=function(){try{var d=JSON.parse(r.result);if(!Array.isArray(d.coffees)||!Array.isArray(d.history))throw 0;
     if(!confirm('Replace everything in this browser with the backup ('+d.history.length+' brews, '+d.coffees.length+' coffees)?'))return;
-    var nd={v:1,coffees:d.coffees,grinders:d.grinders||grinders,schedules:d.schedules||[],notes:Array.isArray(d.notes)?d.notes:[],tares:Array.isArray(d.tares)?d.tares:[],methods:Array.isArray(d.methods)?d.methods:methods,filters:d.filters||filters,history:d.history,nid:d.nid||100};
+    var nd={v:1,coffees:d.coffees,grinders:d.grinders||grinders,schedules:d.schedules||[],notes:Array.isArray(d.notes)?d.notes:[],tares:Array.isArray(d.tares)?d.tares:[],methods:Array.isArray(d.methods)?d.methods:methods,filters:d.filters||filters,history:d.history,nid:d.nid||100,wcalc:(d.wcalc&&typeof d.wcalc==='object'&&!Array.isArray(d.wcalc))?d.wcalc:{}};
     var done=function(){localStorage.setItem(SKEY,JSON.stringify(nd));location.reload()};
     if(SYNC)putData(nd,srev).then(function(x){if(x.s===200){localStorage.setItem(REVKEY,String(x.j.rev));done()}else toast('The NAS rejected the import. Reload and try again.')}).catch(function(){toast('Cannot reach the NAS.')});else done()}
     catch(x){toast('That file is not a Brew Log backup.')}};r.readAsText(f);e.target.value=''});

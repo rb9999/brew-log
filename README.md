@@ -42,6 +42,7 @@ Tap **Update app** at the bottom of the page. The server downloads the latest `i
 
 ## Notes
 
+- **Water calculator link (optional):** the **...** menu in the tab bar has "Water calculator". The first time you tap it, it asks for the web address of your own brewing-water calculator, remembers it (saved with your data, so every device gets it) and opens it inside Brew Log with a Back button. Change the address, or hide or show the menu entry, under **...** at the bottom of the page > Water calculator settings. If a calculator page stays blank inside Brew Log (some sites refuse to be shown inside another page), use "Open directly".
 - The page loads its fonts from Google Fonts. If that is blocked it falls back to system fonts and everything still works.
 - On Linux the container runs as root, so the files in `data/` are owned by root.
 - Licensed under the MIT license (see `LICENSE`).
